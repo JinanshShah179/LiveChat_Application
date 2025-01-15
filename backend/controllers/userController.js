@@ -26,21 +26,6 @@ exports.getUsers = async (req, res) =>
   }
 };
 
-exports.updateProfilePhoto = async (req, res) => 
-{
-  const userId = req.userId;
-  const profilePhoto = req.file.path;
-  try 
-  {
-    const user = await User.findByIdAndUpdate(userId, { profilePhoto }, { new: true });
-    res.status(200).json(user);
-  } 
-  catch (err) 
-  {
-    res.status(500).json({ message: 'Error updating profile photo' });
-  }
-};
-
 
 exports.updateUserProfile = async (req, res) => {
   try 
@@ -60,7 +45,7 @@ exports.updateUserProfile = async (req, res) => {
     if (req.file) 
     {
       const photoPath = path.join('uploads', req.file.filename).replace(/\\/g, '/');
-      user.profilePhoto = photoPath; // Save the path in the database
+      user.profilePhoto = photoPath; 
     }
 
     const updatedUser = await user.save();

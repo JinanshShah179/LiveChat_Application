@@ -9,9 +9,9 @@ const Users = () => {
   const [groups, setGroups] = useState([]);
   const [error, setError] = useState("");
   const [name, setName] = useState("");
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const navigate = useNavigate();
 
-  // Fetch users for creating new groups and groups user is part of
   const fetchUsersAndGroups = async () => {
     try {
       const token = localStorage.getItem("authToken");
@@ -37,8 +37,6 @@ const Users = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      console.log({groupsResponse})
-      
       setGroups(groupsResponse.data);
     } catch (err) {
       console.error(err);
@@ -55,82 +53,100 @@ const Users = () => {
     }, 1000);
   };
 
-  // const addNewGroup = (newGroup) => {
-  //   setGroups((prevGroups) => [...prevGroups, newGroup]);
-  // };
+  // Handle profile navigation
+  const goToProfile = () => {
+    navigate("/profile");
+    setDropdownOpen(false);
+  };
+
+  // Toggle dropdown visibility
+  const toggleDropdown = () => {
+    setDropdownOpen((prevState) => !prevState);
+  };
 
   useEffect(() => {
-    console.log("Useeffect called!")
     fetchUsersAndGroups();
   }, []);
 
   return (
-    <div className="min-h-screen bg-black-100 flex flex-col">
-      <header className="flex justify-end items-center p-4 bg-black-600 text-black">
-        <button
-          onClick={handleLogout}
-          className="bg-black hover:bg-black text-white px-4 py-2 m-2 rounded"
-        >
-          Logout
-        </button>
-        <button className="bg-black hover:bg-black text-white px-4 py-2 rounded">
-          <li className="no-underline">
-            <Link to="/profile">Profile</Link>
-          </li>
-        </button>
-        <button className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">
-          <li className="no-underline">
-            <Link to="/group-create">Create Group</Link>
-          </li>
-        </button>
+    <div className="min-h-screen bg-gray-100 flex flex-col">
+      <header className="flex justify-between items-center p-6 bg-black text-white shadow-md">
+        <h1 className="text-xl font-semibold">Chat App</h1>
+        <div className="relative">
+          <button
+            onClick={toggleDropdown}
+            className="bg-black hover:bg-gray-800 text-white px-4 py-2 rounded-md"
+          >
+            Account
+          </button>
+          {dropdownOpen && (
+            <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-300 rounded-md shadow-lg">
+              <ul className="text-black">
+                <li
+                  onClick={goToProfile}
+                  className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                >
+                  Profile
+                </li>
+                <li
+                  onClick={handleLogout}
+                  className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                >
+                  Logout
+                </li>
+              </ul>
+            </div>
+          )}
+        </div>
       </header>
 
-      <h1 className="flex mb-4 text-lg pl-10 font-bold">Welcome {name}</h1>
+      <div className="p-6">
+        <h2 className="text-2xl font-bold mb-6 text-center">Welcome {name}</h2>
 
-      <div>
-        <h2 className="flex justify-center text-lg font-bold text-center">
-          Your Groups
-        </h2>
-        <main className="flex-grow p-6">
+        <div className="flex justify-between items-center mb-8">
+          <h3 className="text-xl font-semibold">Your Groups</h3>
+          <Link
+            to="/group-create"
+            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md"
+          >
+            Create Group
+          </Link>
+        </div>
+
+        {error && <p className="text-red-500 mb-4">{error}</p>}
+        {groups.length > 0 ? (
+          <ul className="space-y-3">
+            {groups.map((group) => (
+              <li
+                key={group._id}
+                onClick={() => navigate(`/group-chat/${group._id}`)}
+                className="p-4 bg-white rounded-lg shadow hover:bg-gray-200 cursor-pointer transition-all duration-200"
+              >
+                {group.name}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-center text-gray-500">You are not a member of any group yet.</p>
+        )}
+
+        <div className="mt-8">
+          <h3 className="text-xl font-semibold text-center mb-4">All Users</h3>
           {error && <p className="text-red-500 mb-4">{error}</p>}
-
-          {groups.length > 0 ? (
-            <ul className="space-y-2">
-              {groups.map((group) => (
-                <li
-                  key={group._id}
-                  onClick={() => navigate(`/group-chat/${group._id}`)} // Updated to redirect to group chat
-                  className="p-4 bg-white rounded shadow hover:bg-gray-100 cursor-pointer"
-                >
-                  {group.name}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p>You are not a member of any group yet.</p>
-          )}
-        </main>
-      </div>
-
-      <div>
-        <h2 className="flex justify-center text-lg font-bold text-center">
-          All Users
-        </h2>
-        <main className="flex-grow p-6">
-          {error && <p className="text-red-500 mb-4">{error}</p>}
-          <ul className="space-y-2">
+          <ul className="space-y-3">
             {users.map((user) => (
               <li
                 key={user._id}
-                onClick={() => navigate(`/chat/${user._id}`)} // Navigate to individual user chat
-                className="p-4 bg-white rounded shadow hover:bg-gray-100 cursor-pointer"
+                onClick={() => navigate(`/chat/${user._id}`)}
+                className="p-4 bg-white rounded-lg shadow hover:bg-gray-200 cursor-pointer transition-all duration-200"
               >
                 {user.name}
               </li>
             ))}
           </ul>
-        </main>
+        </div>
       </div>
+
       <ToastContainer />
     </div>
   );

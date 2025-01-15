@@ -6,76 +6,12 @@ import { useParams, Link } from "react-router-dom";
 const socket = io("http://localhost:8080");
 
 const emojis = [
-  "😀",
-  "😁",
-  "😂",
-  "😃",
-  "😄",
-  "😅",
-  "😆",
-  "😉",
-  "😊",
-  "😋",
-  "😎",
-  "😍",
-  "😘",
-  "😗",
-  "😙",
-  "😚",
-  "😜",
-  "😝",
-  "😛",
-  "🤑",
-  "🤗",
-  "🤔",
-  "🤨",
-  "😐",
-  "😑",
-  "😶",
-  "🙄",
-  "😏",
-  "😬",
-  "😪",
-  "😴",
-  "😷",
-  "🤒",
-  "🤕",
-  "🤢",
-  "🤮",
-  "🤧",
-  "🥺",
-  "😵",
-  "🤯",
-  "🤠",
-  "😇",
-  "🥳",
-  "😈",
-  "👿",
-  "👹",
-  "👺",
-  "🤖",
-  "💀",
-  "☠️",
-  "👻",
-  "💩",
-  "🤡",
-  "👽",
-  "👾",
-  "🎃",
-  "😺",
-  "😸",
-  "😹",
-  "😻",
-  "😼",
-  "😽",
-  "🙀",
-  "😿",
-  "😾",
-  "🐶",
-  "🐱",
-  "🐭",
-  "🐹",
-  "🐰",
+  "😀", "😁", "😂", "😃", "😄", "😅", "😆", "😉", "😊", "😋", "😎", "😍",
+  "😘", "😗", "😙", "😚", "😜", "😝", "😛", "🤑", "🤗", "🤔", "🤨", "😐", 
+  "😑", "😶", "🙄", "😏", "😬", "😪", "😴", "😷", "🤒", "🤕", "🤢", "🤮", 
+  "🤧", "🥺", "😵", "🤯", "🤠", "😇", "🥳", "😈", "👿", "👹", "👺", "🤖", 
+  "💀", "☠️", "👻", "💩", "🤡", "👽", "👾", "🎃", "😺", "😸", "😹", "😻", 
+  "😼", "😽", "🙀", "😿", "😾", "🐶", "🐱", "🐭", "🐹", "🐰"
 ];
 
 const Chat = () => {
@@ -86,7 +22,7 @@ const Chat = () => {
   const [emojiPickerVisible, setEmojiPickerVisible] = useState(false);
   const messageEndRef = useRef(null);
   const [typingStatus, setTypingStatus] = useState(null);
-  const [receiverData, setreceiverData] = useState(null);
+  const [receiverData, setReceiverData] = useState(null);
   const [senderData, setSenderData] = useState(null);
 
   useEffect(() => {
@@ -105,13 +41,9 @@ const Chat = () => {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
-        // console.log("reponse data",response.data.messages);
-        // console.log("reponse date",response.data.messages.createdAt).toLocaleDateString();
-        // console.log("Sender data",response.data.sender);
-        // console.log("Reciever data", response.data.receiver);
         setMessages(response.data.messages);
         setSenderData(response.data.sender);
-        setreceiverData(response.data.receiver);
+        setReceiverData(response.data.receiver);
       } catch (err) {
         console.error("Error fetching messages:", err);
       }
@@ -133,33 +65,29 @@ const Chat = () => {
     socket.on("newMessage", handleNewMessage);
     socket.on("typing", ({ userId }) => {
       if (userId !== loggedInUserId) {
-        console.log("Typing = ", userId);
-
         setTypingStatus("Typing...");
       }
     });
 
     socket.on("stopTyping", ({ userId }) => {
       if (userId !== loggedInUserId) {
-        console.log("Stop Typing = ", userId);
         setTypingStatus(null);
       }
     });
 
     return () => {
-      socket.off("newMessage", handleNewMessage); // Cleanup event listener
+      socket.off("newMessage", handleNewMessage);
       socket.off("typing");
       socket.off("stopTyping");
     };
   }, [recipientId, loggedInUserId]);
 
   useEffect(() => {
-    // Scroll to the bottom of the chat container when messages change
     messageEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   const sendMessage = async () => {
-    if (!newMessage.trim()) return; // Prevent sending empty messages
+    if (!newMessage.trim()) return;
     try {
       const token = localStorage.getItem("authToken");
       await axios.post(
@@ -184,7 +112,6 @@ const Chat = () => {
   };
 
   const handleTyping = () => {
-    console.log("Handle typing called");
     socket.emit("typing", { chatId: recipientId, userId: loggedInUserId });
     clearTimeout(typingTimeout);
     typingTimeout = setTimeout(() => {
@@ -192,7 +119,7 @@ const Chat = () => {
         chatId: recipientId,
         userId: loggedInUserId,
       });
-    }, 1000); // Stop typing after 2 seconds
+    }, 1000);
   };
 
   let typingTimeout;
@@ -202,25 +129,21 @@ const Chat = () => {
   };
 
   const handleSendMessage = (e) => {
-    e.preventDefault(); // Prevent page refresh
+    e.preventDefault();
     sendMessage();
     socket.emit("stopTyping", { chatId: recipientId, userId: loggedInUserId });
   };
 
   const chatContainerStyles = messages.length === 0
-  ? { minHeight: "400px", height: "auto", width: "100%" }
-  : { height: "400px", maxHeight: "400px", overflowY: "auto" };
-
+    ? { minHeight: "400px", height: "auto", width: "100%" }
+    : { height: "400px", maxHeight: "400px", overflowY: "auto" };
 
   return (
     <div className="flex flex-col w-full max-w-md mx-auto p-4 space-y-4">
       <div className="flex items-center space-x-3">
         {receiverData?.profilePhoto ? (
           <img
-            src={`http://localhost:8080/${receiverData?.profilePhoto.replace(
-              "\\",
-              "/"
-            )}`}
+            src={`http://localhost:8080/${receiverData?.profilePhoto.replace("\\", "/")}`}
             alt={receiverData?.name}
             className="w-10 h-10 rounded-full object-cover"
           />
@@ -229,32 +152,23 @@ const Chat = () => {
             {receiverData?.name?.charAt(0).toUpperCase() || "?"}
           </div>
         )}
-        <h2 className="text-xl font-semibold text-left">
-          {receiverData?.name}
-        </h2>
+        <h2 className="text-xl font-semibold text-left">{receiverData?.name}</h2>
       </div>
 
-      <div className="flex flex-col space-y-4 overflow-y-auto max-h-[400px] p-2 border border-gray-300 rounded-lg scrollbar-hidden" style={chatContainerStyles}>
+      <div
+        className="flex flex-col space-y-4 overflow-y-auto max-h-[400px] p-2 border border-gray-300 rounded-lg scrollbar-hidden"
+        style={chatContainerStyles}
+      >
         {messages.map((msg, index) => (
           <div
             key={index}
-            className={`flex ${
-              msg.fromUserId === loggedInUserId
-                ? "justify-end"
-                : "justify-start"
-            }`}
+            className={`flex ${msg.fromUserId === loggedInUserId ? "justify-end" : "justify-start"}`}
           >
             <div
-              className={`max-w-[70%] p-3 rounded-lg text- ${
-                msg.fromUserId === loggedInUserId
-                  ? "bg-blue-500 text-white self-end"
-                  : "bg-gray-500 text-white self-start"
-              }`}
+              className={`max-w-[70%] p-3 rounded-lg text-white ${msg.fromUserId === loggedInUserId ? "bg-blue-500 self-end" : "bg-gray-500 self-start"}`}
             >
               <strong className="text-white">
-                {msg.fromUserId === loggedInUserId
-                  ? senderData?.name
-                  : receiverData?.name}{" "}
+                {msg.fromUserId === loggedInUserId ? senderData?.name : receiverData?.name}
               </strong>
               <p className="mt-1">{msg.message}</p>
               <span className="text-xs text-gray-300 block justify-end mb-1 text-end">
@@ -266,16 +180,15 @@ const Chat = () => {
             </div>
           </div>
         ))}
-
+        
         {typingStatus && (
           <div className="text-gray-500 mt-2 pr-2 text-sm">{typingStatus}</div>
         )}
+
         <div ref={messageEndRef} />
       </div>
-      <form
-        onSubmit={handleSendMessage}
-        className="flex items-center space-x-2 relative"
-      >
+
+      <form onSubmit={handleSendMessage} className="flex items-center space-x-2 relative">
         <input
           type="text"
           value={newMessage}
@@ -300,6 +213,7 @@ const Chat = () => {
           Send
         </button>
       </form>
+
       {emojiPickerVisible && (
         <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 w-72 grid grid-cols-8 gap-2 bg-white p-2 rounded-lg shadow-lg z-50">
           <div className="col-span-full text-right">
@@ -321,10 +235,12 @@ const Chat = () => {
           ))}
         </div>
       )}
+
       <button className="bg-black text-white mt-3 px-4 py-2 rounded">
         <Link to="/users">Back</Link>
       </button>
     </div>
   );
 };
+
 export default Chat;

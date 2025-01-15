@@ -69,8 +69,8 @@ io.on('connection', (socket) => {
 
   // Send group message
   socket.on('send-group-message', (messageData) => {
-    const { groupId, fromUserId, message } = messageData;
-    io.to(groupId).emit('receive-group-message', { groupId, fromUserId, message });
+    const { groupId, fromUserId, message,createdAt,fromUserName } = messageData;
+    io.to(groupId).emit('receive-group-message', { groupId, fromUserId, message,createdAt,fromUserName});
     console.log('Group message sent:', messageData);
   });
 
