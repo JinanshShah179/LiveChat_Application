@@ -4,6 +4,8 @@ const User = require('../models/User');
 exports.authMiddleware = async (req, res, next) => 
 {
   const authHeader = req.headers.authorization;
+
+  // console.log({authHeader},req.headers)
   
   // console.log('Authorization Header:', authHeader); 
 

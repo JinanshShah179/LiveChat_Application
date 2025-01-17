@@ -1,81 +1,17 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { io } from "socket.io-client";
-import { useParams, Link } from "react-router-dom";
+import { useParams } from "react-router-dom";
 
 const socket = io("http://localhost:8080");
 
 const emojis = [
-  "😀",
-  "😁",
-  "😂",
-  "😃",
-  "😄",
-  "😅",
-  "😆",
-  "😉",
-  "😊",
-  "😋",
-  "😎",
-  "😍",
-  "😘",
-  "😗",
-  "😙",
-  "😚",
-  "😜",
-  "😝",
-  "😛",
-  "🤑",
-  "🤗",
-  "🤔",
-  "🤨",
-  "😐",
-  "😑",
-  "😶",
-  "🙄",
-  "😏",
-  "😬",
-  "😪",
-  "😴",
-  "😷",
-  "🤒",
-  "🤕",
-  "🤢",
-  "🤮",
-  "🤧",
-  "🥺",
-  "😵",
-  "🤯",
-  "🤠",
-  "😇",
-  "🥳",
-  "😈",
-  "👿",
-  "👹",
-  "👺",
-  "🤖",
-  "💀",
-  "☠️",
-  "👻",
-  "💩",
-  "🤡",
-  "👽",
-  "👾",
-  "🎃",
-  "😺",
-  "😸",
-  "😹",
-  "😻",
-  "😼",
-  "😽",
-  "🙀",
-  "😿",
-  "😾",
-  "🐶",
-  "🐱",
-  "🐭",
-  "🐹",
-  "🐰",
+  "😀", "😁", "😂", "😃", "😄", "😅", "😆", "😉", "😊", "😋", "😎", "😍", "😘",
+  "😗", "😙", "😚", "😜", "😝", "😛", "🤑", "🤗", "🤔", "🤨", "😐", "😑", "😶",
+  "🙄", "😏", "😬", "😪", "😴", "😷", "🤒", "🤕", "🤢", "🤮", "🤧", "🥺", "😵",
+  "🤯", "🤠", "😇", "🥳", "😈", "👿", "👹", "👺", "🤖", "💀", "☠️", "👻", "💩",
+  "🤡", "👽", "👾", "🎃", "😺", "😸", "😹", "😻", "😼", "😽", "🙀", "😿", "😾",
+  "🐶", "🐱", "🐭", "🐹", "🐰",
 ];
 
 const Chat = () => {
@@ -88,48 +24,51 @@ const Chat = () => {
   const [typingStatus, setTypingStatus] = useState(null);
   const [receiverData, setReceiverData] = useState(null);
   const [senderData, setSenderData] = useState(null);
-  const [canSendMessage, setCanSendMessage] = useState(false);
+  const [hasPermission, setHasPermission] = useState(false);
 
   useEffect(() => {
-    if (!recipientId) {
-      console.error("Recipient ID is undefined");
-      return;
-    }
-
-    const { permissions } = JSON.parse(localStorage.getItem("user"));
-    console.log(permissions);
-    if (permissions.text_chat) {
-      setCanSendMessage(true);
-    } else {
-      setCanSendMessage(false);
-    }
-    const fetchMessages = async () => {
+    const fetchMessagesAndPermissions = async () => {
       try {
         const token = localStorage.getItem("authToken");
-        const response = await axios.get(
+
+        // Fetch messages
+        const messagesResponse = await axios.get(
           "http://localhost:8080/api/chat/messages",
           {
             params: { toUserId: recipientId },
             headers: { Authorization: `Bearer ${token}` },
           }
         );
-        setMessages(response.data.messages);
-        setSenderData(response.data.sender);
-        setReceiverData(response.data.receiver);
+        setMessages(messagesResponse.data.messages);
+        setSenderData(messagesResponse.data.sender);
+        setReceiverData(messagesResponse.data.receiver);
+
+        // Fetch permissions
+        const userData = JSON.parse(localStorage.getItem("user"));
+        const role = userData?.role;
+
+        const permissionsResponse = await axios.post(
+          "http://localhost:8080/api/permission/permissions",
+          { role },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        const updatedPermissions = permissionsResponse.data.permission;
+        userData.permissions = updatedPermissions;
+        localStorage.setItem("user", JSON.stringify(userData));
+
+        setHasPermission(updatedPermissions.text_chat);
       } catch (err) {
-        console.error("Error fetching messages:", err);
+        console.error("Error fetching messages or permissions:", err);
       }
     };
 
-    fetchMessages();
+    fetchMessagesAndPermissions();
 
     socket.emit("joinRoom", loggedInUserId);
 
     const handleNewMessage = (message) => {
-      if (
-        message.fromUserId === recipientId ||
-        message.toUserId === recipientId
-      ) {
+      if (message.fromUserId === recipientId || message.toUserId === recipientId) {
         setMessages((prevMessages) => [...prevMessages, message]);
       }
     };
@@ -160,8 +99,10 @@ const Chat = () => {
 
   const sendMessage = async () => {
     if (!newMessage.trim()) return;
+
     try {
       const token = localStorage.getItem("authToken");
+
       await axios.post(
         "http://localhost:8080/api/chat/send",
         {
@@ -177,11 +118,10 @@ const Chat = () => {
         toUserId: recipientId,
         message: newMessage,
       });
+
       setNewMessage("");
     } catch (err) {
-      if (err.response?.status === 403) {
-        alert("You dont have permission to send message");
-      } else console.error("Error sending message:", err);
+      console.error("Error sending message:", err);
     }
   };
 
@@ -189,10 +129,7 @@ const Chat = () => {
     socket.emit("typing", { chatId: recipientId, userId: loggedInUserId });
     clearTimeout(typingTimeout);
     typingTimeout = setTimeout(() => {
-      socket.emit("stopTyping", {
-        chatId: recipientId,
-        userId: loggedInUserId,
-      });
+      socket.emit("stopTyping", { chatId: recipientId, userId: loggedInUserId });
     }, 1000);
   };
 
@@ -218,10 +155,7 @@ const Chat = () => {
       <div className="flex items-center space-x-3">
         {receiverData?.profilePhoto ? (
           <img
-            src={`http://localhost:8080/${receiverData?.profilePhoto.replace(
-              "\\",
-              "/"
-            )}`}
+            src={`http://localhost:8080/${receiverData?.profilePhoto.replace("\\", "/")}`}
             alt={receiverData?.name}
             className="w-10 h-10 rounded-full object-cover"
           />
@@ -230,9 +164,7 @@ const Chat = () => {
             {receiverData?.name?.charAt(0).toUpperCase() || "?"}
           </div>
         )}
-        <h2 className="text-xl font-semibold text-left">
-          {receiverData?.name}
-        </h2>
+        <h2 className="text-xl font-semibold text-left">{receiverData?.name}</h2>
       </div>
 
       <div
@@ -242,107 +174,67 @@ const Chat = () => {
         {messages.map((msg, index) => (
           <div
             key={index}
-            className={`flex ${
-              msg.fromUserId === loggedInUserId
-                ? "justify-end"
-                : "justify-start"
-            }`}
+            className={`flex ${msg.fromUserId === loggedInUserId ? "justify-end" : "justify-start"}`}
           >
             <div
               className={`max-w-[70%] p-3 rounded-lg text-white ${
-                msg.fromUserId === loggedInUserId
-                  ? "bg-blue-500 self-end"
-                  : "bg-gray-500 self-start"
+                msg.fromUserId === loggedInUserId ? "bg-blue-500 self-end" : "bg-gray-500 self-start"
               }`}
             >
-              <strong className="text-white">
-                {msg.fromUserId === loggedInUserId
-                  ? senderData?.name
-                  : receiverData?.name}
-              </strong>
+              <strong className="text-white">{msg.fromUserId === loggedInUserId ? senderData?.name : receiverData?.name}</strong>
               <p className="mt-1">{msg.message}</p>
               <span className="text-xs text-gray-300 block justify-end mb-1 text-end">
-                {new Date(msg.createdAt || Date.now()).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
+                {new Date(msg.createdAt || Date.now()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
               </span>
             </div>
           </div>
         ))}
-
-        {typingStatus && (
-          <div className="text-gray-500 mt-2 pr-2 text-sm">{typingStatus}</div>
-        )}
-
+        {typingStatus && <div className="text-gray-500 mt-2 pr-2 text-sm">{typingStatus}</div>}
         <div ref={messageEndRef} />
       </div>
 
-      <form
-        onSubmit={handleSendMessage}
-        className="flex items-center space-x-2 relative"
-      >
-        <input
-          type="text"
-          value={newMessage}
-          onChange={(e) => {
-            setNewMessage(e.target.value);
-            handleTyping();
-          }}
-          placeholder="Type a message..."
-          className="flex-grow p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <button
-          type="button"
-          onClick={() => setEmojiPickerVisible(!emojiPickerVisible)}
-          className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 focus:outline-none"
-        >
-          😀
-        </button>
-        {/* <button
-          type="submit"
-          className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none"
-        >
-          Send
-        </button> */}
-        <button
-          type="submit"
-          className={`px-4 py-2 rounded-lg focus:outline-none ${
-            canSendMessage
-              ? "bg-blue-500 text-white hover:bg-blue-600"
-              : "bg-gray-300 text-gray-500 cursor-not-allowed"
-          }`}
-          disabled={!canSendMessage}
-        >
-          Send
-        </button>
-      </form>
+      {hasPermission && (
+        <form onSubmit={handleSendMessage} className="flex items-center space-x-2 relative">
+          <input
+            type="text"
+            value={newMessage}
+            onChange={(e) => {
+              setNewMessage(e.target.value);
+              handleTyping();
+            }}
+            placeholder="Type a message..."
+            className="flex-grow p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <button
+            type="button"
+            onClick={() => setEmojiPickerVisible(!emojiPickerVisible)}
+            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 focus:outline-none"
+          >
+            😀
+          </button>
+          <button
+            type="submit"
+            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none"
+          >
+            Send
+          </button>
+        </form>
+      )}
 
       {emojiPickerVisible && (
         <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 w-72 grid grid-cols-8 gap-2 bg-white p-2 rounded-lg shadow-lg z-50">
           <div className="col-span-full text-right">
-            <button
-              onClick={() => setEmojiPickerVisible(false)}
-              className="text-sm px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded-md"
-            >
+            <button onClick={() => setEmojiPickerVisible(false)} className="text-sm px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded-md">
               Close
             </button>
           </div>
           {emojis.map((emoji, index) => (
-            <div
-              key={index}
-              onClick={() => handleEmojiClick(emoji)}
-              className="text-2xl cursor-pointer hover:bg-gray-200 rounded-lg p-2"
-            >
+            <button key={index} className="text-2xl" onClick={() => handleEmojiClick(emoji)}>
               {emoji}
-            </div>
+            </button>
           ))}
         </div>
       )}
-
-      <button className="bg-black text-white mt-3 px-4 py-2 rounded">
-        <Link to="/users">Back</Link>
-      </button>
     </div>
   );
 };

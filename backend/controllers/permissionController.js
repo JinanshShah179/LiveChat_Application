@@ -1,34 +1,44 @@
 const Permission = require("../models/Permission");
 
 exports.updatePermissions = async (req, res) => {
-  const { role, permissions } = req.body;
+  const { updatedPermissions } = req.body;
 
   try {
-    let permission = await Permission.findOne({ role });
-
-    if (!permission) {
-      permission = new Permission({
-        role,
-        permissions,
-      });
-    } else {
-      permission.permissions = permissions;
+    if (!updatedPermissions || typeof updatedPermissions !== "object") {
+      return res.status(400).json({ message: "Invalid permissions data" });
     }
 
-    await permission.save();
-    res.status(200).json({
-      message: "Permission Updated Succesfully",
-      permission: permission.permissions,
-    });
+    // Iterate over each role in `updatedPermissions`
+    const roles = Object.keys(updatedPermissions);
+    for (const role of roles) {
+      const rolePermissions = updatedPermissions[role];
+
+      // Find the permission document for the role and update it
+      let permission = await Permission.findOne({ role });
+
+      if (!permission) {
+        // If the role does not exist, create a new permission document
+        permission = new Permission({ role, permissions: rolePermissions });
+      } else {
+        // Update the existing permissions
+        permission.permissions = rolePermissions;
+      }
+
+      // Save the permission document
+      await permission.save();
+    }
+
+    res.status(200).json({ message: "Permissions updated successfully" });
   } catch (error) {
-    // console.log(err);
-    res.status(500).json({ message: "The role you provided is not found" });
+    console.error("Error updating permissions:", error);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
 exports.getPermissions = async (req, res) => {
-  const role = req.body.role;
-  console.log("Role", role);
+  const { role } = req.body;
+
+  console.log("Role", role, req.body);
   try {
     if (!role) {
       return res.status(404).json({ message: "Role is required" });
@@ -51,5 +61,28 @@ exports.getPermissions = async (req, res) => {
   } catch (error) {
     console.log(error);
     return res.status(500).json({ message: "Server error" });
+  }
+};
+
+exports.getPermissions2 = async (req, res) => {
+  try {
+    const permissions = await Permission.find({});
+
+    if (!permissions || permissions.length === 0) {
+      return res.status(404).json({ message: "No permission found" });
+    }
+
+    const permissionByRole = permissions.reduce((acc, permission) => {
+      acc[permission.role] = permission.permissions;
+      return acc;
+    }, {});
+
+    res.status(200).json({
+      message: "Permission reterived succesfully",
+      permissions: permissionByRole,
+    });
+  } catch (error) {
+    console.log("Error in reterving permissions", error);
+    res.status(500).json({ message: "Server error" });
   }
 };

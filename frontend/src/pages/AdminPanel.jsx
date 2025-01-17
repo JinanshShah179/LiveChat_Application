@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const AdminPanel = () => {
   const navigate = useNavigate();
@@ -13,6 +14,61 @@ const AdminPanel = () => {
 
   const [permissions, setPermissions] = useState(initialPermissions);
 
+  // Fetch the current permissions for all roles (on component mount)
+  useEffect(() => {
+    const fetchPermissions = async () => {
+      try {
+        const token = localStorage.getItem("authToken");
+        const response = await axios.get("http://localhost:8080/api/permission/permissions", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        console.log(response);
+
+        if (response.data && response.data.permissions) {
+          // Transform the response data into the correct format
+          const transformedPermissions = {
+            viewChat: {
+              host: response.data.permissions.host.view_chat,
+              user: response.data.permissions.user.view_chat,
+              guest: response.data.permissions.guest.view_chat,
+              admin: response.data.permissions.admin.view_chat,
+            },
+            textChat: {
+              host: response.data.permissions.host.text_chat,
+              user: response.data.permissions.user.text_chat,
+              guest: response.data.permissions.guest.text_chat,
+              admin: response.data.permissions.admin.text_chat,
+            },
+            addMember: {
+              host: response.data.permissions.host.add_member,
+              user: response.data.permissions.user.add_member,
+              guest: response.data.permissions.guest.add_member,
+              admin: response.data.permissions.admin.add_member,
+            },
+            deleteGroup: {
+              host: response.data.permissions.host.delete_group,
+              user: response.data.permissions.user.delete_group,
+              guest: response.data.permissions.guest.delete_group,
+              admin: response.data.permissions.admin.delete_group,
+            },
+          };
+
+          setPermissions(transformedPermissions);
+        } else {
+          console.error("Invalid permissions structure");
+          alert("Invalid permissions data received.");
+        }
+      } catch (error) {
+        console.error("Error fetching permissions:", error);
+        alert("Failed to fetch permissions.");
+      }
+    };
+
+    fetchPermissions();
+  }, []);
+
   // Handle checkbox changes
   const handleCheckboxChange = (permission, role) => {
     setPermissions((prevState) => ({
@@ -24,16 +80,30 @@ const AdminPanel = () => {
     }));
   };
 
-  // Handle form submission (if you want to save permissions to server)
-  const handleSubmit = (e) => {
+  // Handle form submission (save permissions)
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Here you can make an API call to save the permissions
-    console.log("Permissions saved:", permissions);
-    alert("Permissions updated successfully!");
+    try {
+      const token = localStorage.getItem("authToken");
+      const response = await axios.post(
+        "http://localhost:8080/api/permission/permissions/update",
+        { permissions },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      // console.log(response);
+      alert("Permissions updated successfully!");
+    } catch (error) {
+      console.error("Error updating permissions:", error);
+      alert("Failed to update permissions.");
+    }
   };
 
   const handleLogout = () => {
-    // Clear user-related data and token
     localStorage.removeItem("authToken");
     localStorage.removeItem("user");
     localStorage.removeItem("userId");
@@ -51,7 +121,7 @@ const AdminPanel = () => {
         <h1 className="text-xl">Admin Panel</h1>
         <div className="flex space-x-4">
           <button
-            onClick={handleCreateUserPage} // Navigate to Create User page
+            onClick={handleCreateUserPage}
             className="bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600"
           >
             Create New User
@@ -65,9 +135,7 @@ const AdminPanel = () => {
         </div>
       </div>
       <div className="bg-white shadow-md rounded-lg p-8 w-full">
-        <h2 className="text-2xl font-semibold mb-6 text-gray-700">
-          Role Permissions
-        </h2>
+        <h2 className="text-2xl font-semibold mb-6 text-gray-700">Role Permissions</h2>
         <form onSubmit={handleSubmit}>
           <table className="min-w-full table-auto border-collapse">
             <thead>
@@ -86,28 +154,28 @@ const AdminPanel = () => {
                 <td className="border px-4 py-2">
                   <input
                     type="checkbox"
-                    checked={permissions.viewChat.host}
+                    checked={permissions.viewChat?.host}
                     onChange={() => handleCheckboxChange("viewChat", "host")}
                   />
                 </td>
                 <td className="border px-4 py-2">
                   <input
                     type="checkbox"
-                    checked={permissions.viewChat.user}
+                    checked={permissions.viewChat?.user}
                     onChange={() => handleCheckboxChange("viewChat", "user")}
                   />
                 </td>
                 <td className="border px-4 py-2">
                   <input
                     type="checkbox"
-                    checked={permissions.viewChat.guest}
+                    checked={permissions.viewChat?.guest}
                     onChange={() => handleCheckboxChange("viewChat", "guest")}
                   />
                 </td>
                 <td className="border px-4 py-2">
                   <input
                     type="checkbox"
-                    checked={permissions.viewChat.admin}
+                    checked={permissions.viewChat?.admin}
                     onChange={() => handleCheckboxChange("viewChat", "admin")}
                   />
                 </td>
@@ -118,28 +186,28 @@ const AdminPanel = () => {
                 <td className="border px-4 py-2">
                   <input
                     type="checkbox"
-                    checked={permissions.textChat.host}
+                    checked={permissions.textChat?.host}
                     onChange={() => handleCheckboxChange("textChat", "host")}
                   />
                 </td>
                 <td className="border px-4 py-2">
                   <input
                     type="checkbox"
-                    checked={permissions.textChat.user}
+                    checked={permissions.textChat?.user}
                     onChange={() => handleCheckboxChange("textChat", "user")}
                   />
                 </td>
                 <td className="border px-4 py-2">
                   <input
                     type="checkbox"
-                    checked={permissions.textChat.guest}
+                    checked={permissions.textChat?.guest}
                     onChange={() => handleCheckboxChange("textChat", "guest")}
                   />
                 </td>
                 <td className="border px-4 py-2">
                   <input
                     type="checkbox"
-                    checked={permissions.textChat.admin}
+                    checked={permissions.textChat?.admin}
                     onChange={() => handleCheckboxChange("textChat", "admin")}
                   />
                 </td>
@@ -150,28 +218,28 @@ const AdminPanel = () => {
                 <td className="border px-4 py-2">
                   <input
                     type="checkbox"
-                    checked={permissions.addMember.host}
+                    checked={permissions.addMember?.host}
                     onChange={() => handleCheckboxChange("addMember", "host")}
                   />
                 </td>
                 <td className="border px-4 py-2">
                   <input
                     type="checkbox"
-                    checked={permissions.addMember.user}
+                    checked={permissions.addMember?.user}
                     onChange={() => handleCheckboxChange("addMember", "user")}
                   />
                 </td>
                 <td className="border px-4 py-2">
                   <input
                     type="checkbox"
-                    checked={permissions.addMember.guest}
+                    checked={permissions.addMember?.guest}
                     onChange={() => handleCheckboxChange("addMember", "guest")}
                   />
                 </td>
                 <td className="border px-4 py-2">
                   <input
                     type="checkbox"
-                    checked={permissions.addMember.admin}
+                    checked={permissions.addMember?.admin}
                     onChange={() => handleCheckboxChange("addMember", "admin")}
                   />
                 </td>
@@ -182,33 +250,29 @@ const AdminPanel = () => {
                 <td className="border px-4 py-2">
                   <input
                     type="checkbox"
-                    checked={permissions.deleteGroup.host}
+                    checked={permissions.deleteGroup?.host}
                     onChange={() => handleCheckboxChange("deleteGroup", "host")}
                   />
                 </td>
                 <td className="border px-4 py-2">
                   <input
                     type="checkbox"
-                    checked={permissions.deleteGroup.user}
+                    checked={permissions.deleteGroup?.user}
                     onChange={() => handleCheckboxChange("deleteGroup", "user")}
                   />
                 </td>
                 <td className="border px-4 py-2">
                   <input
                     type="checkbox"
-                    checked={permissions.deleteGroup.guest}
-                    onChange={() =>
-                      handleCheckboxChange("deleteGroup", "guest")
-                    }
+                    checked={permissions.deleteGroup?.guest}
+                    onChange={() => handleCheckboxChange("deleteGroup", "guest")}
                   />
                 </td>
                 <td className="border px-4 py-2">
                   <input
                     type="checkbox"
-                    checked={permissions.deleteGroup.admin}
-                    onChange={() =>
-                      handleCheckboxChange("deleteGroup", "admin")
-                    }
+                    checked={permissions.deleteGroup?.admin}
+                    onChange={() => handleCheckboxChange("deleteGroup", "admin")}
                   />
                 </td>
               </tr>
