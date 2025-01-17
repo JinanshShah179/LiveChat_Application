@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
 
 const AdminPanel = () => {
   const navigate = useNavigate();
@@ -14,20 +17,21 @@ const AdminPanel = () => {
 
   const [permissions, setPermissions] = useState(initialPermissions);
 
-  // Fetch the current permissions for all roles (on component mount)
   useEffect(() => {
     const fetchPermissions = async () => {
       try {
         const token = localStorage.getItem("authToken");
-        const response = await axios.get("http://localhost:8080/api/permission/permissions", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const response = await axios.get(
+          "http://localhost:8080/api/permission/permissions",
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
         console.log(response);
 
         if (response.data && response.data.permissions) {
-          // Transform the response data into the correct format
           const transformedPermissions = {
             viewChat: {
               host: response.data.permissions.host.view_chat,
@@ -55,6 +59,7 @@ const AdminPanel = () => {
             },
           };
 
+          console.log("TransformedPermissions", transformedPermissions);
           setPermissions(transformedPermissions);
         } else {
           console.error("Invalid permissions structure");
@@ -80,26 +85,58 @@ const AdminPanel = () => {
     }));
   };
 
-  // Handle form submission (save permissions)
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log("Submit request");
+
     try {
       const token = localStorage.getItem("authToken");
+      const updatedPermissions = {
+        updatedPermissions: {
+          admin: {
+            view_chat: permissions.viewChat.admin,
+            text_chat: permissions.textChat.admin,
+            add_member: permissions.addMember.admin,
+            delete_group: permissions.deleteGroup.admin,
+          },
+          user: {
+            view_chat: permissions.viewChat.user,
+            text_chat: permissions.textChat.user,
+            add_member: permissions.addMember.user,
+            delete_group: permissions.deleteGroup.user,
+          },
+          guest: {
+            view_chat: permissions.viewChat.guest,
+            text_chat: permissions.textChat.guest,
+            add_member: permissions.addMember.guest,
+            delete_group: permissions.deleteGroup.guest,
+          },
+          host: {
+            view_chat: permissions.viewChat.host,
+            text_chat: permissions.textChat.host,
+            add_member: permissions.addMember.host,
+            delete_group: permissions.deleteGroup.host,
+          },
+        },
+      };
       const response = await axios.post(
         "http://localhost:8080/api/permission/permissions/update",
-        { permissions },
-        {
+        updatedPermissions,
+        { 
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
         }
       );
-      // console.log(response);
-      alert("Permissions updated successfully!");
+      console.log(" submit after api call");
+      console.log("Permisisons",updatedPermissions);
+      // alert("Permissions updated successfully!");
+      toast.success("Permissions updated successfully");
     } catch (error) {
       console.error("Error updating permissions:", error);
-      alert("Failed to update permissions.");
+      toast.warning("Failed to update permissions");
+      // alert("Failed to update permissions.");
     }
   };
 
@@ -108,6 +145,8 @@ const AdminPanel = () => {
     localStorage.removeItem("user");
     localStorage.removeItem("userId");
     localStorage.removeItem("name");
+    localStorage.removeItem("role");
+    localStorage.removeItem("permissions");
     navigate("/login");
   };
 
@@ -135,7 +174,9 @@ const AdminPanel = () => {
         </div>
       </div>
       <div className="bg-white shadow-md rounded-lg p-8 w-full">
-        <h2 className="text-2xl font-semibold mb-6 text-gray-700">Role Permissions</h2>
+        <h2 className="text-2xl font-semibold mb-6 text-gray-700">
+          Role Permissions
+        </h2>
         <form onSubmit={handleSubmit}>
           <table className="min-w-full table-auto border-collapse">
             <thead>
@@ -265,14 +306,18 @@ const AdminPanel = () => {
                   <input
                     type="checkbox"
                     checked={permissions.deleteGroup?.guest}
-                    onChange={() => handleCheckboxChange("deleteGroup", "guest")}
+                    onChange={() =>
+                      handleCheckboxChange("deleteGroup", "guest")
+                    }
                   />
                 </td>
                 <td className="border px-4 py-2">
                   <input
                     type="checkbox"
                     checked={permissions.deleteGroup?.admin}
-                    onChange={() => handleCheckboxChange("deleteGroup", "admin")}
+                    onChange={() =>
+                      handleCheckboxChange("deleteGroup", "admin")
+                    }
                   />
                 </td>
               </tr>
@@ -287,6 +332,7 @@ const AdminPanel = () => {
           </button>
         </form>
       </div>
+      <ToastContainer/>
     </div>
   );
 };

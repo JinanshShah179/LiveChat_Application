@@ -7,10 +7,10 @@ const permissionSchema = new mongoose.Schema({
     required: true,
   },
   permissions: {
-    view_chat: { type: Boolean, default: false },
-    text_chat: { type: Boolean, default: false },
-    add_member: { type: Boolean, default: false },
-    delete_group: { type: Boolean, default: false },
+    view_chat: { type: Boolean, default: false,required:true },
+    text_chat: { type: Boolean, default: false ,required:true },
+    add_member: { type: Boolean, default: false ,required:true },
+    delete_group: { type: Boolean, default: false ,required:true },
   },
 });
 

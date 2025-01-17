@@ -3,7 +3,9 @@ const Permission = require("../models/Permission");
 exports.updatePermissions = async (req, res) => {
   const { updatedPermissions } = req.body;
 
-  try {
+  console.log("Received Permissions Data:",updatedPermissions);
+  try 
+  {
     if (!updatedPermissions || typeof updatedPermissions !== "object") {
       return res.status(400).json({ message: "Invalid permissions data" });
     }
@@ -12,6 +14,11 @@ exports.updatePermissions = async (req, res) => {
     const roles = Object.keys(updatedPermissions);
     for (const role of roles) {
       const rolePermissions = updatedPermissions[role];
+
+      if (!["admin", "user", "guest", "host"].includes(role)) {
+        return res.status(400).json({ message: `Invalid role: ${role}` });
+      }
+
 
       // Find the permission document for the role and update it
       let permission = await Permission.findOne({ role });
