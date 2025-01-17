@@ -6,12 +6,76 @@ import { useParams, Link } from "react-router-dom";
 const socket = io("http://localhost:8080");
 
 const emojis = [
-  "😀", "😁", "😂", "😃", "😄", "😅", "😆", "😉", "😊", "😋", "😎", "😍",
-  "😘", "😗", "😙", "😚", "😜", "😝", "😛", "🤑", "🤗", "🤔", "🤨", "😐", 
-  "😑", "😶", "🙄", "😏", "😬", "😪", "😴", "😷", "🤒", "🤕", "🤢", "🤮", 
-  "🤧", "🥺", "😵", "🤯", "🤠", "😇", "🥳", "😈", "👿", "👹", "👺", "🤖", 
-  "💀", "☠️", "👻", "💩", "🤡", "👽", "👾", "🎃", "😺", "😸", "😹", "😻", 
-  "😼", "😽", "🙀", "😿", "😾", "🐶", "🐱", "🐭", "🐹", "🐰"
+  "😀",
+  "😁",
+  "😂",
+  "😃",
+  "😄",
+  "😅",
+  "😆",
+  "😉",
+  "😊",
+  "😋",
+  "😎",
+  "😍",
+  "😘",
+  "😗",
+  "😙",
+  "😚",
+  "😜",
+  "😝",
+  "😛",
+  "🤑",
+  "🤗",
+  "🤔",
+  "🤨",
+  "😐",
+  "😑",
+  "😶",
+  "🙄",
+  "😏",
+  "😬",
+  "😪",
+  "😴",
+  "😷",
+  "🤒",
+  "🤕",
+  "🤢",
+  "🤮",
+  "🤧",
+  "🥺",
+  "😵",
+  "🤯",
+  "🤠",
+  "😇",
+  "🥳",
+  "😈",
+  "👿",
+  "👹",
+  "👺",
+  "🤖",
+  "💀",
+  "☠️",
+  "👻",
+  "💩",
+  "🤡",
+  "👽",
+  "👾",
+  "🎃",
+  "😺",
+  "😸",
+  "😹",
+  "😻",
+  "😼",
+  "😽",
+  "🙀",
+  "😿",
+  "😾",
+  "🐶",
+  "🐱",
+  "🐭",
+  "🐹",
+  "🐰",
 ];
 
 const Chat = () => {
@@ -24,6 +88,7 @@ const Chat = () => {
   const [typingStatus, setTypingStatus] = useState(null);
   const [receiverData, setReceiverData] = useState(null);
   const [senderData, setSenderData] = useState(null);
+  const [canSendMessage, setCanSendMessage] = useState(false);
 
   useEffect(() => {
     if (!recipientId) {
@@ -31,6 +96,13 @@ const Chat = () => {
       return;
     }
 
+    const { permissions } = JSON.parse(localStorage.getItem("user"));
+    console.log(permissions);
+    if (permissions.text_chat) {
+      setCanSendMessage(true);
+    } else {
+      setCanSendMessage(false);
+    }
     const fetchMessages = async () => {
       try {
         const token = localStorage.getItem("authToken");
@@ -107,7 +179,9 @@ const Chat = () => {
       });
       setNewMessage("");
     } catch (err) {
-      console.error("Error sending message:", err);
+      if (err.response?.status === 403) {
+        alert("You dont have permission to send message");
+      } else console.error("Error sending message:", err);
     }
   };
 
@@ -134,16 +208,20 @@ const Chat = () => {
     socket.emit("stopTyping", { chatId: recipientId, userId: loggedInUserId });
   };
 
-  const chatContainerStyles = messages.length === 0
-    ? { minHeight: "400px", height: "auto", width: "100%" }
-    : { height: "400px", maxHeight: "400px", overflowY: "auto" };
+  const chatContainerStyles =
+    messages.length === 0
+      ? { minHeight: "400px", height: "auto", width: "100%" }
+      : { height: "400px", maxHeight: "400px", overflowY: "auto" };
 
   return (
     <div className="flex flex-col w-full max-w-md mx-auto p-4 space-y-4">
       <div className="flex items-center space-x-3">
         {receiverData?.profilePhoto ? (
           <img
-            src={`http://localhost:8080/${receiverData?.profilePhoto.replace("\\", "/")}`}
+            src={`http://localhost:8080/${receiverData?.profilePhoto.replace(
+              "\\",
+              "/"
+            )}`}
             alt={receiverData?.name}
             className="w-10 h-10 rounded-full object-cover"
           />
@@ -152,7 +230,9 @@ const Chat = () => {
             {receiverData?.name?.charAt(0).toUpperCase() || "?"}
           </div>
         )}
-        <h2 className="text-xl font-semibold text-left">{receiverData?.name}</h2>
+        <h2 className="text-xl font-semibold text-left">
+          {receiverData?.name}
+        </h2>
       </div>
 
       <div
@@ -162,13 +242,23 @@ const Chat = () => {
         {messages.map((msg, index) => (
           <div
             key={index}
-            className={`flex ${msg.fromUserId === loggedInUserId ? "justify-end" : "justify-start"}`}
+            className={`flex ${
+              msg.fromUserId === loggedInUserId
+                ? "justify-end"
+                : "justify-start"
+            }`}
           >
             <div
-              className={`max-w-[70%] p-3 rounded-lg text-white ${msg.fromUserId === loggedInUserId ? "bg-blue-500 self-end" : "bg-gray-500 self-start"}`}
+              className={`max-w-[70%] p-3 rounded-lg text-white ${
+                msg.fromUserId === loggedInUserId
+                  ? "bg-blue-500 self-end"
+                  : "bg-gray-500 self-start"
+              }`}
             >
               <strong className="text-white">
-                {msg.fromUserId === loggedInUserId ? senderData?.name : receiverData?.name}
+                {msg.fromUserId === loggedInUserId
+                  ? senderData?.name
+                  : receiverData?.name}
               </strong>
               <p className="mt-1">{msg.message}</p>
               <span className="text-xs text-gray-300 block justify-end mb-1 text-end">
@@ -180,7 +270,7 @@ const Chat = () => {
             </div>
           </div>
         ))}
-        
+
         {typingStatus && (
           <div className="text-gray-500 mt-2 pr-2 text-sm">{typingStatus}</div>
         )}
@@ -188,7 +278,10 @@ const Chat = () => {
         <div ref={messageEndRef} />
       </div>
 
-      <form onSubmit={handleSendMessage} className="flex items-center space-x-2 relative">
+      <form
+        onSubmit={handleSendMessage}
+        className="flex items-center space-x-2 relative"
+      >
         <input
           type="text"
           value={newMessage}
@@ -206,9 +299,20 @@ const Chat = () => {
         >
           😀
         </button>
-        <button
+        {/* <button
           type="submit"
           className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none"
+        >
+          Send
+        </button> */}
+        <button
+          type="submit"
+          className={`px-4 py-2 rounded-lg focus:outline-none ${
+            canSendMessage
+              ? "bg-blue-500 text-white hover:bg-blue-600"
+              : "bg-gray-300 text-gray-500 cursor-not-allowed"
+          }`}
+          disabled={!canSendMessage}
         >
           Send
         </button>

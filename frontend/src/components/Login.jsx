@@ -34,9 +34,23 @@ const Login = () =>
         localStorage.setItem('userId',userId);
         localStorage.setItem('name',name);
         toast.success("Welcome...");
-        setTimeout(()=>{
-          navigate('/users');
-        },1000);
+        const {role,permissions} = JSON.parse(localStorage.getItem('user'));
+        localStorage.setItem('role',role);
+        localStorage.setItem('permissions',permissions);
+        console.log("Role :",role);
+        console.log("Permissions:",permissions);
+        if(role === "admin")
+        {
+          setTimeout(()=>{
+            navigate('/admin');
+          },1000);
+        }
+        else
+        {
+          setTimeout(()=>{
+            navigate('/users');
+          },1000);
+        }
       }
       console.log('Login successful:', response.data);
     } 

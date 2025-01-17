@@ -1,5 +1,7 @@
 const Message = require("../models/Message");
 const User = require("../models/User");
+// const Permission = require('../models/Permission');
+
 
 exports.sendMessage = async (req, res) => {
   const { fromUserId, toUserId, message } = req.body;
@@ -13,7 +15,9 @@ exports.sendMessage = async (req, res) => {
   try 
   {
     const newMessage = await Message.create({fromUserId,toUserId,message,});
-    const sender = await User.findById(fromUserId);
+    const sender = await User.findById(fromUserId).populate("permissions");
+    const canSendMessages = sender.permissions.text_chat;
+    console.log({canSendMessages})
     const receiver = await User.findById(toUserId);
     res.status(201).json(
       { 
@@ -31,6 +35,7 @@ exports.sendMessage = async (req, res) => {
           email: receiver.email,
           profilePhoto: receiver.profilePhoto || null,
         },
+        canSendMessages,
      });
   } 
   catch (error) 

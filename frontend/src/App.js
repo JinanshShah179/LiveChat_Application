@@ -7,6 +7,8 @@ import Chat from './pages/Chat';
 import Profile from './pages/Profile';
 import GroupCreate from './pages/GroupCreate';
 import GroupChat from "./pages/GroupChat";
+import AdminPanel from "./pages/AdminPanel";
+import CreateUser from "./pages/CreateUser";
 function App() {
   return (
     <BrowserRouter>
@@ -14,6 +16,8 @@ function App() {
         <Route path="/" element={<Navigate to="/login" />} />
         <Route  path='/login' element={<Login/>}/>
         <Route  path='/signup' element={<Signup/>}/>
+        <Route path='/admin' element={<ProtectedRoute><AdminPanel></AdminPanel></ProtectedRoute>}/>
+        <Route path='/create-user' element={<ProtectedRoute><CreateUser></CreateUser></ProtectedRoute>}/>
         <Route path="/users" element={<ProtectedRoute><Users/></ProtectedRoute>}/>
         <Route path="/chat/:recipientId" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>}/>

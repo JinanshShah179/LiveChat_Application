@@ -11,6 +11,7 @@ const authRoutes = require('./routes/authRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 const userRoutes = require('./routes/userRoutes');
 const groupRoutes = require('./routes/groupRoutes');
+const permissionRoutes = require('./routes/permissionRoutes');
 
 dotenv.config();
 connectDB();
@@ -28,6 +29,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/group', groupRoutes);
+app.use('/api/permission',permissionRoutes);
 
 // Socket.IO Setup
 const io = new Server(server, {
