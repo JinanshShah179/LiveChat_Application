@@ -10,18 +10,36 @@ const Users = () => {
   const [error, setError] = useState("");
   const [name, setName] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [viewChatPermission, setViewChatPermission] = useState(false);
+  const [createGroupPermission, setcreateGroupPermission] = useState(false);
+
   const navigate = useNavigate();
 
   const fetchUsersAndGroups = async () => {
     try {
       const token = localStorage.getItem("authToken");
       const user = JSON.parse(localStorage.getItem("user"));
-      const { name } = user;
-
+      const { name,role } = user;
+      // console.log("Role is",role);
       setName(name);
       if (!token) {
         throw new Error("User is not authenticated.");
       }
+
+      // Fetch permissions for the logged-in user
+      const permissionsResponse = await axios.post("http://localhost:8080/api/permission/permissions",{role} ,{
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      // const permissions = permissionsResponse.data.permission;
+      // console.log("Pemrissions data",permissions.data);
+      
+      const updatedPermissions = permissionsResponse.data.permission;
+      user.permissions = updatedPermissions;
+      // console.log("Updated permissions",updatedPermissions);
+      localStorage.setItem("user", JSON.stringify(user));
+      setViewChatPermission(updatedPermissions.view_chat);
+      setcreateGroupPermission(updatedPermissions.create_group);
 
       const usersResponse = await axios.get("http://localhost:8080/api/user/users", {
         headers: { Authorization: `Bearer ${token}` },
@@ -105,12 +123,22 @@ const Users = () => {
 
         <div className="flex justify-between items-center mb-8">
           <h3 className="text-xl font-semibold">Your Groups</h3>
+          { createGroupPermission ? (
           <Link
             to="/group-create"
             className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md"
           >
             Create Group
           </Link>
+          ) :
+          (
+            <div
+              title="You don't have permission to create a group."
+              className="bg-gray-300 text-white px-4 py-2 rounded-md cursor-not-allowed"
+            >
+              Create Group
+            </div>
+          )}
         </div>
 
         {error && <p className="text-red-500 mb-4">{error}</p>}
@@ -119,8 +147,19 @@ const Users = () => {
             {groups.map((group) => (
               <li
                 key={group._id}
-                onClick={() => navigate(`/group-chat/${group._id}`)}
-                className="p-4 bg-white rounded-lg shadow hover:bg-gray-200 cursor-pointer transition-all duration-200"
+                onClick={() => {
+                  if (viewChatPermission) {
+                    navigate(`/group-chat/${group._id}`);
+                  }
+                }}
+                title={
+                  viewChatPermission ? "" : "You don't have a permission to view this chat."
+                }
+                className={`p-4 bg-white rounded-lg shadow ${
+                  viewChatPermission
+                    ? "hover:bg-gray-200 cursor-pointer"
+                    : "bg-gray-300 cursor-not-allowed"
+                } transition-all duration-200`}
               >
                 {group.name}
               </li>
@@ -137,8 +176,19 @@ const Users = () => {
             {users.map((user) => (
               <li
                 key={user._id}
-                onClick={() => navigate(`/chat/${user._id}`)}
-                className="p-4 bg-white rounded-lg shadow hover:bg-gray-200 cursor-pointer transition-all duration-200"
+                onClick={() => {
+                  if (viewChatPermission) {
+                    navigate(`/chat/${user._id}`);
+                  }
+                }}
+                title={
+                  viewChatPermission ? "" : "You don't have a permission to view this chat."
+                }
+                className={`p-4 bg-white rounded-lg shadow ${
+                  viewChatPermission
+                    ? "hover:bg-gray-200 cursor-pointer"
+                    : "bg-gray-300 cursor-not-allowed"
+                } transition-all duration-200`}
               >
                 {user.name}
               </li>

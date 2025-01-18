@@ -17,7 +17,7 @@ exports.sendMessage = async (req, res) => {
     const newMessage = await Message.create({fromUserId,toUserId,message,});
     const sender = await User.findById(fromUserId).populate("permissions");
     const canSendMessages = sender.permissions.text_chat;
-    console.log({canSendMessages})
+    // console.log({canSendMessages})
     const receiver = await User.findById(toUserId);
     res.status(201).json(
       { 

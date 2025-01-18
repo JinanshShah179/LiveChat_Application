@@ -13,6 +13,7 @@ const AdminPanel = () => {
     textChat: { host: false, user: false, guest: false, admin: false },
     addMember: { host: false, user: false, guest: false, admin: false },
     deleteGroup: { host: false, user: false, guest: false, admin: false },
+    createGroup: { host: false, user: false, guest: false, admin: false },
   };
 
   const [permissions, setPermissions] = useState(initialPermissions);
@@ -57,6 +58,13 @@ const AdminPanel = () => {
               guest: response.data.permissions.guest.delete_group,
               admin: response.data.permissions.admin.delete_group,
             },
+            createGroup: {
+              host: response.data.permissions.host.create_group,
+              user: response.data.permissions.user.create_group,
+              guest: response.data.permissions.guest.create_group,
+              admin: response.data.permissions.admin.create_group,
+            },
+            
           };
 
           console.log("TransformedPermissions", transformedPermissions);
@@ -98,28 +106,32 @@ const AdminPanel = () => {
             text_chat: permissions.textChat.admin,
             add_member: permissions.addMember.admin,
             delete_group: permissions.deleteGroup.admin,
+            create_group:permissions.createGroup.admin,
           },
           user: {
             view_chat: permissions.viewChat.user,
             text_chat: permissions.textChat.user,
             add_member: permissions.addMember.user,
             delete_group: permissions.deleteGroup.user,
+            create_group:permissions.createGroup.user,
           },
           guest: {
             view_chat: permissions.viewChat.guest,
             text_chat: permissions.textChat.guest,
             add_member: permissions.addMember.guest,
             delete_group: permissions.deleteGroup.guest,
+            create_group:permissions.createGroup.guest,
           },
           host: {
             view_chat: permissions.viewChat.host,
             text_chat: permissions.textChat.host,
             add_member: permissions.addMember.host,
             delete_group: permissions.deleteGroup.host,
+            create_group:permissions.createGroup.host,
           },
         },
       };
-      const response = await axios.post(
+      await axios.post(
         "http://localhost:8080/api/permission/permissions/update",
         updatedPermissions,
         { 
@@ -132,10 +144,11 @@ const AdminPanel = () => {
       console.log(" submit after api call");
       console.log("Permisisons",updatedPermissions);
       // alert("Permissions updated successfully!");
-      toast.success("Permissions updated successfully");
+      toast.success("Permissions updated successfully",{autoClose:2000});
+      
     } catch (error) {
       console.error("Error updating permissions:", error);
-      toast.warning("Failed to update permissions");
+      toast.warning("There is no update you made");
       // alert("Failed to update permissions.");
     }
   };
@@ -321,6 +334,43 @@ const AdminPanel = () => {
                   />
                 </td>
               </tr>
+              {/* Permission 5: Create Group */}
+              <tr>
+                <td className="border px-4 py-2">Create Group</td>
+                <td className="border px-4 py-2">
+                  <input
+                    type="checkbox"
+                    checked={permissions.createGroup?.host}
+                    onChange={() => handleCheckboxChange("createGroup", "host")}
+                  />
+                </td>
+                <td className="border px-4 py-2">
+                  <input
+                    type="checkbox"
+                    checked={permissions.createGroup?.user}
+                    onChange={() => handleCheckboxChange("createGroup", "user")}
+                  />
+                </td>
+                <td className="border px-4 py-2">
+                  <input
+                    type="checkbox"
+                    checked={permissions.createGroup?.guest}
+                    onChange={() =>
+                      handleCheckboxChange("createGroup", "guest")
+                    }
+                  />
+                </td>
+                <td className="border px-4 py-2">
+                  <input
+                    type="checkbox"
+                    checked={permissions.createGroup?.admin}
+                    onChange={() =>
+                      handleCheckboxChange("createGroup", "admin")
+                    }
+                  />
+                </td>
+              </tr>
+              
             </tbody>
           </table>
 

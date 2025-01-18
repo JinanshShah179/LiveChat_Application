@@ -1,6 +1,7 @@
 const Group = require("../models/Group");
 const Message = require("../models/Message");
 const User = require("../models/User");
+const Permission = require('../models/Permission');
 
 exports.createGroup = async (req, res) => {
   const { name, members, createdBy } = req.body;
@@ -133,9 +134,9 @@ exports.getGroupDetails = async (req, res) => {
 
 exports.deleteGroup = async (req, res) => {
   const { groupId } = req.params;
-  const userId = req.user.id;
-  console.log("Delete group called", userId, groupId);
+  const userId = req.user.id; // Assumes middleware has set req.user
   try {
+    // Find the group
     const group = await Group.findById(groupId);
     if (!group) {
       return res
@@ -143,14 +144,33 @@ exports.deleteGroup = async (req, res) => {
         .json({ success: false, message: "Group not found." });
     }
 
-    if (group.createdBy.toString() !== userId) {
+    // Fetch the user and their permissions
+    const user = await User.findById(userId).populate("permissions");
+    if (!user) {
+      return res
+        .status(403)
+        .json({ success: false, message: "Unauthorized: User not found." });
+    }
+
+    const { role, permissions } = user;
+
+    // Check if user is allowed to delete the group
+    const canDeleteGroup =
+      group.createdBy.toString() === userId || // User is the creator
+      role === "admin" || // User is an admin
+      (permissions && permissions.permissions.delete_group); // User has explicit permission
+
+    if (!canDeleteGroup) {
       return res.status(403).json({
         success: false,
-        message: "You are not allowed to delete this group,",
+        message: "You do not have permission to delete this group.",
       });
     }
+
+    // Delete the group and related messages
     await Group.findByIdAndDelete(groupId);
     await Message.deleteMany({ groupId });
+
     res
       .status(200)
       .json({ success: true, message: "Group deleted successfully." });

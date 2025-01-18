@@ -13,7 +13,7 @@ exports.checkPermission = (action) => {
       }
 
       const userPermissions = user.permissions;
-      console.log(userPermissions);
+      // console.log(userPermissions);
       if (!userPermissions) 
       {
         res.status(403).json({ message: "Permission for this is not defined"});

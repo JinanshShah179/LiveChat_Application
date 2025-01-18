@@ -125,6 +125,7 @@ exports.adminCreateUser = async (req, res) => {
           text_chat: false,
           add_member: false,
           delete_group: false,
+          create_grouo:false,
         },
       });
       await permission.save();

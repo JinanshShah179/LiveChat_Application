@@ -11,6 +11,7 @@ const permissionSchema = new mongoose.Schema({
     text_chat: { type: Boolean, default: false ,required:true },
     add_member: { type: Boolean, default: false ,required:true },
     delete_group: { type: Boolean, default: false ,required:true },
+    create_group : {type : Boolean, default:false,required:true},
   },
 });
 

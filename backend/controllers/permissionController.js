@@ -3,7 +3,7 @@ const Permission = require("../models/Permission");
 exports.updatePermissions = async (req, res) => {
   const { updatedPermissions } = req.body;
 
-  console.log("Received Permissions Data:",updatedPermissions);
+  // console.log("Received Permissions Data:",updatedPermissions);
   try 
   {
     if (!updatedPermissions || typeof updatedPermissions !== "object") {
@@ -45,7 +45,7 @@ exports.updatePermissions = async (req, res) => {
 exports.getPermissions = async (req, res) => {
   const { role } = req.body;
 
-  console.log("Role", role, req.body);
+  // console.log("Role", role, req.body);
   try {
     if (!role) {
       return res.status(404).json({ message: "Role is required" });
@@ -61,7 +61,7 @@ exports.getPermissions = async (req, res) => {
         .status(404)
         .json({ message: "Permission not found for this role" });
     }
-    console.log(permission);
+    // console.log(permission);
     res.status(200).json({
       permission: permission.permissions,
     });
@@ -71,6 +71,7 @@ exports.getPermissions = async (req, res) => {
   }
 };
 
+//For admin
 exports.getPermissions2 = async (req, res) => {
   try {
     const permissions = await Permission.find({});
