@@ -43,6 +43,7 @@ const Signup = () => {
       formData.append('confirmPassword', confirmPassword);
       formData.append('profilePhoto', profilePhoto);
 
+
       const response = await axios.post('http://localhost:8080/api/auth/signup', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',

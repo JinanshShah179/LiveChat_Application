@@ -24,9 +24,9 @@ exports.signup = async (req, res) => {
       return res.status(500).json({ message: 'File upload error' });
     }
 
-    const { name, email, password, confirmPassword,role } = req.body;
+    const { name, email, password, confirmPassword } = req.body;
     const profilePhoto = req.file?.path;
-
+    const role = "user";
     try 
     {
       if (password !== confirmPassword) 
@@ -40,14 +40,29 @@ exports.signup = async (req, res) => {
         return res.status(400).json({ message: 'User already exists' });
       }
 
-      const newUserRole = role || 'user';
+      let permission = await Permission.findOne({role});
 
+      if(!permission)
+      {
+        permission = new Permission({
+          newUserRole,
+          permissions: {
+            view_chat: false,
+            text_chat: false,
+            add_member: false,
+            delete_group: false,
+            create_grouo:false,
+          },
+        });
+        await permission.save();
+      }
       const newUser = new User({
         name,
         email,
         password,
         profilePhoto,
-        role:newUserRole,
+        role:role,
+        permissions:permission._id,
       });
 
       await newUser.save();
