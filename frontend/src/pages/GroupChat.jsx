@@ -256,6 +256,8 @@ const GroupChat = () => {
       ? { minHeight: "400px", height: "auto", width: "100%" }
       : { height: "400px", maxHeight: "400px", overflowY: "auto" };
 
+      console.log(messages, messages[0]?.fromUserId, messages[messages.length - 1]?.fromUserId)
+
   return (
     <div className="flex flex-col w-full max-w-md mx-auto p-4 space-y-4">
       <div className="flex justify-between items-center">
@@ -305,7 +307,7 @@ const GroupChat = () => {
               }`}
             >
               <strong className="text-sm">
-                {msg.fromUserId._id === userId ? "" : msg.fromUserId.name}
+                {(msg.fromUserId._id || msg.fromUserId) === userId ?  (msg.fromUserId.name || msg.fromUserName):(msg.fromUserId.name || msg.fromUserName)}
               </strong>
               <p>{msg.message}</p>
               <span className="text-xs text-gray-500 block mt-1">
