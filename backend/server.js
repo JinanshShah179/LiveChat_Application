@@ -37,7 +37,7 @@
   });
 
   io.on('connection', (socket) => {
-    console.log('New WebSocket connection', socket.id);
+    // console.log('New WebSocket connection', socket.id);
 
     // Debugging: Log all socket events
     socket.onAny((event, ...args) => {

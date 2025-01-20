@@ -42,24 +42,67 @@ exports.getGroupMessages = async (req, res) => {
 
 exports.addGroupMember = async (req, res) => {
   const { groupId } = req.params;
-  const { userId } = req.body;
+  const { userIds } = req.body;
 
   try {
-    const group = await Group.findById(groupId);
-    if (!group) return res.status(404).json({ message: "Group not found" });
 
-    if (group.members.includes(userId)) {
-      return res
-        .status(404)
-        .json({ message: "User is already a memeber of group" });
+    if(!Array.isArray(userIds) || userIds.length === 0)
+    {
+      return res.status(400).json({message:"Provide an array of user Ids"});
     }
-    group.members.push(userId);
+
+    const group = await Group.findById(groupId);
+    if (!group) return res.status(404).json({ message: "Group not found" });  
+
+    const newMembers = userIds.filter((userId) => !group.members.includes(userId));
+
+    if(newMembers.length === 0)
+    {
+       return res.status(400).json({message:"All users are already in the group"});
+    }
+
+    //logic of adding single userId
+    // if (group.members.includes(userId)) {
+    //   return res
+    //     .status(404)
+    //     .json({ message: "User is already a memeber of group" });
+    // }
+
+    group.members.push(...newMembers);
     await group.save();
-    res.status(200).json({ success: true, group });
+    res.status(200).json({ success: true, message:"Users added to the group Succesfully.",group });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
+exports.removeGroupMember = async (req,res)=>{
+
+  const {groupId } = req.params;
+  const {userId} = req.body;
+
+  try 
+  {
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });  
+
+    const group = await Group.findById(groupId);
+    if (!group) return res.status(404).json({ message: "Group not found" });  
+
+    const isMember = group.members.some((member) => member.equals(userId));
+    if(!isMember) return res.status(404).json({success:false,message:"User is not a member of Group"});
+
+    group.members = group.members.filter((member) => !member.equals(userId));
+    await group.save();
+
+    res.status(200).json({message:"User removed from the group Succesfully"});
+  }
+  catch (error) 
+  {
+   res.status(500).json({ success: false, error: error.message });   
+  }
+};
+
 
 exports.sendGroupMessage = async (req, res) => {
   const { fromUserId, groupId, message } = req.body;
@@ -124,6 +167,7 @@ exports.getGroupDetails = async (req, res) => {
         id: group._id,
         name: group.name,
         createdBy: group.createdBy,
+        members:group.members,
       },
     });
   } catch (error) {

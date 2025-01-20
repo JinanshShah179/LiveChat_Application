@@ -88,10 +88,13 @@ const GroupChat = () => {
   const [inputMessage, setInputMessage] = useState("");
   const [emojiPickerVisible, setEmojiPickerVisible] = useState(false);
   const [groupName, setGroupName] = useState("Loading...");
+  // const [groupData,setGroupData] = useState(null);
+  const [members, setMembers] = useState([]);
+  const [viewMemberVisible, setViewMemberVisible] = useState(false);
   const [groupCreatedBy, setGroupCreatedBy] = useState("");
   const [addMemberVisible, setAddMemberVisible] = useState(false);
   const [allUsers, setAllUsers] = useState([]);
-  const [selectedUserId, setSelectedUserId] = useState("");
+  const [selectedUserIds, setSelectedUserIds] = useState("");
   const [permissions, setPermissions] = useState({});
   const messageEndRef = useRef(null);
   const navigate = useNavigate();
@@ -106,6 +109,8 @@ const GroupChat = () => {
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setGroupName(groupResponse.data.group.name);
+        setMembers(groupResponse.data.group.members);
+        console.log(groupResponse.data.group.members);
         setGroupCreatedBy(groupResponse.data.group.createdBy._id);
 
         const messagesResponse = await axios.get(
@@ -206,8 +211,8 @@ const GroupChat = () => {
   };
 
   const addNewMember = async () => {
-    if (!selectedUserId) {
-      alert("Please select a user to add.");
+    if (selectedUserIds.length === 0) {
+      alert("Please select at least one user to add.");
       return;
     }
 
@@ -215,12 +220,12 @@ const GroupChat = () => {
       const token = localStorage.getItem("authToken");
       const response = await axios.post(
         `http://localhost:8080/api/group/${selectedGroupId}/add-member`,
-        { userId: selectedUserId },
+        { userIds: selectedUserIds },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (response.data.success) {
-        toast.success("Member added successfully");
-        setSelectedUserId(""); // Clear selected user
+        toast.success("Members added successfully");
+        setSelectedUserIds([]); // Clear selected users
         setAddMemberVisible(false); // Close modal
       }
     } catch (error) {
@@ -256,12 +261,19 @@ const GroupChat = () => {
       ? { minHeight: "400px", height: "auto", width: "100%" }
       : { height: "400px", maxHeight: "400px", overflowY: "auto" };
 
-      console.log(messages, messages[0]?.fromUserId, messages[messages.length - 1]?.fromUserId)
+  // console.log(messages, messages[0]?.fromUserId, messages[messages.length - 1]?.fromUserId)
+  // console.log(members[0].name);
 
   return (
     <div className="flex flex-col w-full max-w-md mx-auto p-4 space-y-4">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">{groupName}</h2>
+        <button
+          onClick={() => setViewMemberVisible(!viewMemberVisible)}
+          className="text-sm bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
+        >
+          View Members
+        </button>
         {permissions.add_member && (
           <button
             onClick={fetchAllUsers}
@@ -301,13 +313,15 @@ const GroupChat = () => {
           >
             <div
               className={`bg-gray-200 p-3 rounded-lg ${
-                msg.fromUserId._id === userId
-                  ? "bg-blue-500 text-white"
+                (msg.fromUserId._id || msg.fromUserId) === userId
+                  ? "bg-blue-500 text-black"
                   : "bg-gray-300 text-black"
               }`}
             >
               <strong className="text-sm">
-                {(msg.fromUserId._id || msg.fromUserId) === userId ?  (msg.fromUserId.name || msg.fromUserName):(msg.fromUserId.name || msg.fromUserName)}
+                {(msg.fromUserId._id || msg.fromUserId) === userId
+                  ? msg.fromUserId.name || msg.fromUserName
+                  : msg.fromUserId.name || msg.fromUserName}
               </strong>
               <p>{msg.message}</p>
               <span className="text-xs text-gray-500 block mt-1">
@@ -363,20 +377,30 @@ const GroupChat = () => {
       {addMemberVisible && (
         <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
           <div className="bg-white p-4 rounded shadow-lg max-w-md w-full">
-            <h3 className="text-lg font-semibold mb-4">Add a Member</h3>
-            <select
-              value={selectedUserId}
-              onChange={(e) => setSelectedUserId(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded mb-4"
-            >
-              <option value="">Select a User</option>
+            <h3 className="text-lg font-semibold mb-4">Add Members</h3>
+            <div className="max-h-60 overflow-y-auto p-2 border border-gray-300 rounded">
               {allUsers.map((user) => (
-                <option key={user._id} value={user._id}>
-                  {user.name}
-                </option>
+                <label key={user._id} className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    value={user._id}
+                    checked={selectedUserIds.includes(user._id)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedUserIds((prev) => [...prev, user._id]);
+                      } else {
+                        setSelectedUserIds((prev) =>
+                          prev.filter((id) => id !== user._id)
+                        );
+                      }
+                    }}
+                    className="form-checkbox"
+                  />
+                  <span>{user.name}</span>
+                </label>
               ))}
-            </select>
-            <div className="flex justify-end space-x-2">
+            </div>
+            <div className="flex justify-end space-x-2 mt-4">
               <button
                 onClick={() => setAddMemberVisible(false)}
                 className="px-3 py-1 rounded bg-gray-300 hover:bg-gray-400"
@@ -387,12 +411,63 @@ const GroupChat = () => {
                 onClick={addNewMember}
                 className="px-3 py-1 rounded bg-green-500 text-white hover:bg-green-600"
               >
-                Add Member
+                Add Members
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* { viewMemberVisible && (
+      <ul>
+        {members.map((member) => (
+          <li key={member._id}>
+            {member.name} ({member.email})
+          </li>
+        ))}
+      </ul>
+      )} */}
+
+      {viewMemberVisible && (
+        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white p-4 rounded shadow-lg max-w-md w-full">
+            <h3 className="text-lg font-semibold mb-4">Group Members</h3>
+            <div className="max-h-60 overflow-y-auto p-2 border border-gray-300 rounded">
+              {members.map((member) => (
+                
+                <div key={member._id} className="flex items-center justify-between p-2 border-b border-gray-200">
+                  <div className="flex flex-col">
+                    <p className="text-sm font-medium">{member.name}</p>
+                    <p className="text-xs text-gray-500">{member.email}</p>
+                  </div>
+
+                  {member._id === groupCreatedBy && (
+                    <p className="text-xs text-green-500 font-semibold">
+                      Group Admin
+                    </p>
+                  )}
+
+                  {member._id !== groupCreatedBy && (
+                    <button className="text-xs bg-red-500 text-white p-2 rounded-lg">
+                      Remove
+                    </button>
+                  )}
+
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-end space-x-2 mt-4">
+              <button
+                onClick={() => setViewMemberVisible(false)}
+                className="px-3 py-1 rounded bg-gray-300 hover:bg-gray-400"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <ToastContainer />
     </div>
   );

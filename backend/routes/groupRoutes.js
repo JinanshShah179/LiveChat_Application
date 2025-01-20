@@ -1,6 +1,6 @@
 
 const express = require('express');
-const { createGroup, getGroupMessages, addGroupMember,sendGroupMessage,getGroups,getGroupDetails,deleteGroup} = require('../controllers/groupController');
+const { createGroup, getGroupMessages, addGroupMember,sendGroupMessage,getGroups,getGroupDetails,deleteGroup,removeGroupMember} = require('../controllers/groupController');
 const { authMiddleware } = require('../middleware/authMiddleware');
 const { checkPermission } = require('../middleware/permissionMiddleware');
 const router = express.Router();
@@ -9,6 +9,7 @@ const router = express.Router();
 router.post('/create', authMiddleware, createGroup);
 router.get('/userGroups',authMiddleware,getGroups);
 router.get('/:groupId',authMiddleware,getGroupDetails);
+router.post('/:groupId/remove-member',authMiddleware,removeGroupMember);
 
 router.post('/send',authMiddleware,checkPermission("text_chat"),sendGroupMessage);
 router.get('/:groupId/messages', authMiddleware,checkPermission("view_chat") ,getGroupMessages);
