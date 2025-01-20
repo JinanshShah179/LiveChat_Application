@@ -30,7 +30,7 @@ const AdminPanel = () => {
             },
           }
         );
-        console.log(response);
+        // console.log(response);
 
         if (response.data && response.data.permissions) {
           const transformedPermissions = {
@@ -67,7 +67,7 @@ const AdminPanel = () => {
             
           };
 
-          console.log("TransformedPermissions", transformedPermissions);
+          // console.log("TransformedPermissions", transformedPermissions);
           setPermissions(transformedPermissions);
         } else {
           console.error("Invalid permissions structure");
@@ -145,7 +145,7 @@ const AdminPanel = () => {
       console.log("Permisisons",updatedPermissions);
       // alert("Permissions updated successfully!");
       toast.success("Permissions updated successfully",{autoClose:2000});
-      
+
     } catch (error) {
       console.error("Error updating permissions:", error);
       toast.warning("There is no update you made");

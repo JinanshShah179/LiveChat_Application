@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const multer = require('multer');
 const Permission = require('../models/Permission');
+const sendMail = require('../utils/mail').default;
 
 //multer
 const storage = multer.diskStorage({
@@ -65,10 +66,25 @@ exports.signup = async (req, res) => {
         permissions:permission._id,
       });
 
+      
+      const subject = "Registration Successful";
+      const loginUrl = "http://localhost:3000/login";
+      const message = 
+      `
+      <h1>Welcome, ${name}!</h1>
+      <p>Your registration is successful. Here are your details:</p>
+      <ul>
+      <li><strong>Email:</strong> ${email}</li>
+      <li><strong>Password:</strong> ${password}</li>
+      <li><strong>Role:</strong> ${role}</li>
+      </ul>
+       <p>You can log in using the following link:</p>
+        <a href="${loginUrl}">${loginUrl}</a>
+      `;
+      sendMail(email,subject,message);
+      
       await newUser.save();
-
       const token = jwt.sign({ userId: newUser._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-
       res.status(201).json({
         message: 'User registered successfully',
         token
@@ -166,6 +182,22 @@ exports.adminCreateUser = async (req, res) => {
     // Hash the password before saving
     // const hashedPassword = await bcrypt.hash(password, 10);
     // newUser.password = hashedPassword;
+
+    const subject = "Registration Successful";
+      const loginUrl = "http://localhost:3000/login";
+      const message = 
+      `
+      <h1>Welcome, ${name}!</h1>
+      <p>Your registration is successful. Here are your details:</p>
+      <ul>
+      <li><strong>Email:</strong> ${email}</li>
+      <li><strong>Password:</strong> ${password}</li>
+      <li><strong>Role:</strong> ${role}</li>
+      </ul>
+       <p>You can log in using the following link:</p>
+        <a href="${loginUrl}">${loginUrl}</a>
+      `;
+      sendMail(email,subject,message);
 
     await newUser.save();
     const token = jwt.sign({ userId: newUser._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
