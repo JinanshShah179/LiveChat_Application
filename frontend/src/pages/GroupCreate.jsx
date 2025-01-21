@@ -60,7 +60,7 @@ const GroupCreate = () => {
       const token = localStorage.getItem('authToken');
       const userData = JSON.parse(localStorage.getItem('user'));
 
-      const response = await axios.post(
+      await axios.post(
         'http://localhost:8080/api/group/create',
         {
           name:groupName,

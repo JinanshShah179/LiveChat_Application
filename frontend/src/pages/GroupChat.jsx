@@ -4,6 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { Button, Dialog, DialogActions, DialogContent,DialogContentText,DialogTitle} from "@mui/material";
 
 const socket = io("http://localhost:8080");
 
@@ -88,7 +89,6 @@ const GroupChat = () => {
   const [inputMessage, setInputMessage] = useState("");
   const [emojiPickerVisible, setEmojiPickerVisible] = useState(false);
   const [groupName, setGroupName] = useState("Loading...");
-  // const [groupData,setGroupData] = useState(null);
   const [members, setMembers] = useState([]);
   const [viewMemberVisible, setViewMemberVisible] = useState(false);
   const [groupCreatedBy, setGroupCreatedBy] = useState("");
@@ -96,8 +96,28 @@ const GroupChat = () => {
   const [allUsers, setAllUsers] = useState([]);
   const [selectedUserIds, setSelectedUserIds] = useState("");
   const [permissions, setPermissions] = useState({});
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [removeMemberDialogOpen, setRemoveMemberDialogOpen] = useState(false);
+  const [memberToRemove, setMemberToRemove] = useState(null);
   const messageEndRef = useRef(null);
   const navigate = useNavigate();
+
+  const handleDialogOpen = () => {
+    setDialogOpen(true);
+  };
+  const handleDialogClose = () => {
+    setDialogOpen(false);
+  };
+
+  const openRemoveMemberDialog = (member) => {
+    setMemberToRemove(member);
+    setRemoveMemberDialogOpen(true);
+  };
+
+  const closeRemoveMemberDialog = () => {
+    setMemberToRemove(null);
+    setRemoveMemberDialogOpen(false);
+  };
 
   useEffect(() => {
     const fetchGroupDataAndPermissions = async () => {
@@ -108,9 +128,12 @@ const GroupChat = () => {
           `http://localhost:8080/api/group/${selectedGroupId}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
+
         setGroupName(groupResponse.data.group.name);
         setMembers(groupResponse.data.group.members);
-        console.log(groupResponse.data.group.members);
+
+        // console.log(groupResponse.data.group.members);
+
         setGroupCreatedBy(groupResponse.data.group.createdBy._id);
 
         const messagesResponse = await axios.get(
@@ -201,8 +224,16 @@ const GroupChat = () => {
       const response = await axios.get("http://localhost:8080/api/user/users", {
         headers: { Authorization: `Bearer ${token}` },
       });
+
       const filteredUsers = response.data.filter((user) => user._id !== userId);
       setAllUsers(filteredUsers);
+
+      const alreadyMembersIds = members.map((member) => member._id);
+      setSelectedUserIds((prevSelected) => [
+        ...prevSelected,
+        ...alreadyMembersIds,
+      ]);
+
       setAddMemberVisible(true);
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -215,6 +246,11 @@ const GroupChat = () => {
       alert("Please select at least one user to add.");
       return;
     }
+
+    const newMembers = allUsers.filter((user) =>
+      selectedUserIds.includes(user._id)
+    );
+    setMembers((prevMembers) => [...prevMembers, ...newMembers]);
 
     try {
       const token = localStorage.getItem("authToken");
@@ -231,6 +267,12 @@ const GroupChat = () => {
     } catch (error) {
       console.error("Error adding new member:", error);
       toast.warning("User is already present in the group");
+      setMembers((prevMembers) =>
+        prevMembers.filter(
+          (member) =>
+            !newMembers.some((newMember) => newMember._id === member._id)
+        )
+      );
     }
   };
 
@@ -244,11 +286,43 @@ const GroupChat = () => {
         }
       );
       if (response.data.success) {
-        navigate("/users");
+        toast.success("Group Deleted Succesfully");
+        setTimeout(() => {
+          navigate("/users");
+        }, 2000);
       }
     } catch (error) {
       console.error("Error deleting group:", error);
       alert("Failed to delete the group. Please try again.");
+    }
+  };
+
+  const removeGroupMember = async (memberId) => {
+    try {
+      const token = localStorage.getItem("authToken");
+      axios.post(
+        `http://localhost:8080/api/group/${selectedGroupId}/remove-member`,
+        { userId: memberId },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      setMembers((prevMembers) =>
+        prevMembers.filter((member) => member._id !== memberId)
+      );
+      toast.success("Member removed successfully");
+
+      // if (response.data.success) {
+      //   toast.success("Member removed succesfully");
+      //   fetchGroupDataAndPermissions();
+      //   setMembers((prevMembers) =>
+      //     prevMembers.filter((member) => member._id !== memberId)
+      //   );
+      // }
+    } catch (error) {
+      console.error("Error removing member:", error);
+      toast.error("Failed to remove the member");
     }
   };
 
@@ -284,18 +358,43 @@ const GroupChat = () => {
         )}
         {permissions.delete_group && (
           <button
-            onClick={() => {
-              if (
-                window.confirm("Are you sure you want to delete this group?")
-              ) {
-                deleteGroup();
-              }
-            }}
+            onClick={handleDialogOpen}
             className="text-sm bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
           >
             Delete Group
           </button>
         )}
+        <Dialog
+          open={dialogOpen}
+          onClose={handleDialogClose}
+          aria-labelledby="alert-dialog-title"
+          aria-describedby="alert-dialog-description"
+        >
+          <DialogTitle id="alert-dialog-title">
+            {"Are you sure you want to delete this group?"}
+          </DialogTitle>
+          <DialogContent>
+            <DialogContentText id="alert-dialog-description">
+              Once deleted, the group and its data cannot be recovered. Please
+              confirm if you want to proceed.
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleDialogClose} color="primary">
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                deleteGroup(); // Call the delete function
+                handleDialogClose(); // Close the dialog
+              }}
+              color="error"
+              autoFocus
+            >
+              Confirm
+            </Button>
+          </DialogActions>
+        </Dialog>
       </div>
 
       <div
@@ -394,6 +493,7 @@ const GroupChat = () => {
                         );
                       }
                     }}
+                    disabled={members.some((member) => member._id === user._id)}
                     className="form-checkbox"
                   />
                   <span>{user.name}</span>
@@ -418,24 +518,16 @@ const GroupChat = () => {
         </div>
       )}
 
-      {/* { viewMemberVisible && (
-      <ul>
-        {members.map((member) => (
-          <li key={member._id}>
-            {member.name} ({member.email})
-          </li>
-        ))}
-      </ul>
-      )} */}
-
       {viewMemberVisible && (
         <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
           <div className="bg-white p-4 rounded shadow-lg max-w-md w-full">
             <h3 className="text-lg font-semibold mb-4">Group Members</h3>
             <div className="max-h-60 overflow-y-auto p-2 border border-gray-300 rounded">
               {members.map((member) => (
-                
-                <div key={member._id} className="flex items-center justify-between p-2 border-b border-gray-200">
+                <div
+                  key={member._id}
+                  className="flex items-center justify-between p-2 border-b border-gray-200"
+                >
                   <div className="flex flex-col">
                     <p className="text-sm font-medium">{member.name}</p>
                     <p className="text-xs text-gray-500">{member.email}</p>
@@ -447,12 +539,46 @@ const GroupChat = () => {
                     </p>
                   )}
 
-                  {member._id !== groupCreatedBy && (
-                    <button className="text-xs bg-red-500 text-white p-2 rounded-lg">
-                      Remove
-                    </button>
-                  )}
-
+                  {userId === groupCreatedBy &&
+                    member._id !== groupCreatedBy && (
+                      <button onClick={() => openRemoveMemberDialog(member)} className="text-xs bg-red-500 text-white p-2 rounded-lg">
+                        Remove
+                      </button>
+                    )}
+                  <Dialog
+                    open={removeMemberDialogOpen}
+                    onClose={closeRemoveMemberDialog}
+                    aria-labelledby="remove-member-dialog-title"
+                    aria-describedby="remove-member-dialog-description"
+                  >
+                    <DialogTitle id="remove-member-dialog-title">
+                      {"Confirm Remove Member"}
+                    </DialogTitle>
+                    <DialogContent>
+                      <DialogContentText id="remove-member-dialog-description">
+                        Are you sure you want to remove{" "}
+                        <strong>{memberToRemove?.name}</strong> from the group?
+                        This action cannot be undone.
+                      </DialogContentText>
+                    </DialogContent>
+                    <DialogActions>
+                      <Button onClick={closeRemoveMemberDialog} color="primary">
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          if (memberToRemove) {
+                            removeGroupMember(member._id);
+                            closeRemoveMemberDialog();
+                          }
+                        }}
+                        color="error"
+                        autoFocus
+                      >
+                        Confirm
+                      </Button>
+                    </DialogActions>
+                  </Dialog>
                 </div>
               ))}
             </div>
