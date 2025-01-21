@@ -59,12 +59,12 @@
       } catch (error) {
         console.error('Error joining group:', error.message);
       }
-    });
+    })
 
     // Send private message
     socket.on('sendMessage', (messageData) => {
-      const { fromUserId, toUserId, message } = messageData;
-      io.to(toUserId).to(fromUserId).emit('newMessage', { fromUserId, toUserId, message });
+      const { fromUserId, toUserId, message,file:filePath } = messageData;
+      io.to(toUserId).to(fromUserId).emit('newMessage', { fromUserId, toUserId, message,file:filePath });
       console.log('Private message sent:', messageData);
     });
 

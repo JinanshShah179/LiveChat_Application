@@ -19,7 +19,7 @@ const Users = () => {
     try {
       const token = localStorage.getItem("authToken");
       const user = JSON.parse(localStorage.getItem("user"));
-      const { name,role } = user;
+      const { name, role } = user;
       // console.log("Role is",role);
       setName(name);
       if (!token) {
@@ -27,13 +27,17 @@ const Users = () => {
       }
 
       // Fetch permissions for the logged-in user
-      const permissionsResponse = await axios.post("http://localhost:8080/api/permission/permissions",{role} ,{
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const permissionsResponse = await axios.post(
+        "http://localhost:8080/api/permission/permissions",
+        { role },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
       // const permissions = permissionsResponse.data.permission;
       // console.log("Pemrissions data",permissions.data);
-      
+
       const updatedPermissions = permissionsResponse.data.permission;
       user.permissions = updatedPermissions;
       // console.log("Updated permissions",updatedPermissions);
@@ -41,9 +45,12 @@ const Users = () => {
       setViewChatPermission(updatedPermissions.view_chat);
       setcreateGroupPermission(updatedPermissions.create_group);
 
-      const usersResponse = await axios.get("http://localhost:8080/api/user/users", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const usersResponse = await axios.get(
+        "http://localhost:8080/api/user/users",
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
       const loggedInUserId = JSON.parse(atob(token.split(".")[1])).userId;
       const filteredUsers = usersResponse.data.filter(
@@ -51,9 +58,12 @@ const Users = () => {
       );
       setUsers(filteredUsers);
 
-      const groupsResponse = await axios.get("http://localhost:8080/api/group/userGroups", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const groupsResponse = await axios.get(
+        "http://localhost:8080/api/group/userGroups",
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
       setGroups(groupsResponse.data);
     } catch (err) {
@@ -123,15 +133,14 @@ const Users = () => {
 
         <div className="flex justify-between items-center mb-8">
           <h3 className="text-xl font-semibold">Your Groups</h3>
-          { createGroupPermission ? (
-          <Link
-            to="/group-create"
-            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md"
-          >
-            Create Group
-          </Link>
-          ) :
-          (
+          {createGroupPermission ? (
+            <Link
+              to="/group-create"
+              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md"
+            >
+              Create Group
+            </Link>
+          ) : (
             <div
               title="You don't have permission to create a group."
               className="bg-gray-300 text-white px-4 py-2 rounded-md cursor-not-allowed"
@@ -153,7 +162,9 @@ const Users = () => {
                   }
                 }}
                 title={
-                  viewChatPermission ? "" : "You don't have a permission to view this chat."
+                  viewChatPermission
+                    ? ""
+                    : "You don't have a permission to view this chat."
                 }
                 className={`p-4 bg-white rounded-lg shadow ${
                   viewChatPermission
@@ -166,7 +177,9 @@ const Users = () => {
             ))}
           </ul>
         ) : (
-          <p className="text-center text-gray-500">You are not a member of any group yet.</p>
+          <p className="text-center text-gray-500">
+            You are not a member of any group yet.
+          </p>
         )}
 
         <div className="mt-8">
@@ -182,7 +195,9 @@ const Users = () => {
                   }
                 }}
                 title={
-                  viewChatPermission ? "" : "You don't have a permission to view this chat."
+                  viewChatPermission
+                    ? ""
+                    : "You don't have a permission to view this chat."
                 }
                 className={`p-4 bg-white rounded-lg shadow ${
                   viewChatPermission

@@ -120,6 +120,7 @@ const GroupChat = () => {
   };
 
   useEffect(() => {
+
     const fetchGroupDataAndPermissions = async () => {
       try {
         const token = localStorage.getItem("authToken");
@@ -383,14 +384,7 @@ const GroupChat = () => {
             <Button onClick={handleDialogClose} color="primary">
               Cancel
             </Button>
-            <Button
-              onClick={() => {
-                deleteGroup(); // Call the delete function
-                handleDialogClose(); // Close the dialog
-              }}
-              color="error"
-              autoFocus
-            >
+            <Button onClick={() => { deleteGroup(); handleDialogClose();}} color="error" autoFocus>
               Confirm
             </Button>
           </DialogActions>

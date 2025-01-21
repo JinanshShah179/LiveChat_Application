@@ -2,22 +2,89 @@ import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { io } from "socket.io-client";
 import { useParams } from "react-router-dom";
+import RemoveRedEyeIcon from "@mui/icons-material/RemoveRedEye";
+import DownloadIcon from "@mui/icons-material/Download";
 
 const socket = io("http://localhost:8080");
 
 const emojis = [
-  "😀", "😁", "😂", "😃", "😄", "😅", "😆", "😉", "😊", "😋", "😎", "😍", "😘",
-  "😗", "😙", "😚", "😜", "😝", "😛", "🤑", "🤗", "🤔", "🤨", "😐", "😑", "😶",
-  "🙄", "😏", "😬", "😪", "😴", "😷", "🤒", "🤕", "🤢", "🤮", "🤧", "🥺", "😵",
-  "🤯", "🤠", "😇", "🥳", "😈", "👿", "👹", "👺", "🤖", "💀", "☠️", "👻", "💩",
-  "🤡", "👽", "👾", "🎃", "😺", "😸", "😹", "😻", "😼", "😽", "🙀", "😿", "😾",
-  "🐶", "🐱", "🐭", "🐹", "🐰",
+  "😀",
+  "😁",
+  "😂",
+  "😃",
+  "😄",
+  "😅",
+  "😆",
+  "😉",
+  "😊",
+  "😋",
+  "😎",
+  "😍",
+  "😘",
+  "😗",
+  "😙",
+  "😚",
+  "😜",
+  "😝",
+  "😛",
+  "🤑",
+  "🤗",
+  "🤔",
+  "🤨",
+  "😐",
+  "😑",
+  "😶",
+  "🙄",
+  "😏",
+  "😬",
+  "😪",
+  "😴",
+  "😷",
+  "🤒",
+  "🤕",
+  "🤢",
+  "🤮",
+  "🤧",
+  "🥺",
+  "😵",
+  "🤯",
+  "🤠",
+  "😇",
+  "🥳",
+  "😈",
+  "👿",
+  "👹",
+  "👺",
+  "🤖",
+  "💀",
+  "☠️",
+  "👻",
+  "💩",
+  "🤡",
+  "👽",
+  "👾",
+  "🎃",
+  "😺",
+  "😸",
+  "😹",
+  "😻",
+  "😼",
+  "😽",
+  "🙀",
+  "😿",
+  "😾",
+  "🐶",
+  "🐱",
+  "🐭",
+  "🐹",
+  "🐰",
 ];
 
 const Chat = () => {
   const { recipientId } = useParams();
   const loggedInUserId = localStorage.getItem("userId");
   const [messages, setMessages] = useState([]);
+  const [file, setFile] = useState(null);
   const [newMessage, setNewMessage] = useState("");
   const [emojiPickerVisible, setEmojiPickerVisible] = useState(false);
   const messageEndRef = useRef(null);
@@ -68,7 +135,10 @@ const Chat = () => {
     socket.emit("joinRoom", loggedInUserId);
 
     const handleNewMessage = (message) => {
-      if (message.fromUserId === recipientId || message.toUserId === recipientId) {
+      if (
+        message.fromUserId === recipientId ||
+        message.toUserId === recipientId
+      ) {
         setMessages((prevMessages) => [...prevMessages, message]);
       }
     };
@@ -98,18 +168,20 @@ const Chat = () => {
   }, [messages]);
 
   const sendMessage = async () => {
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() && !file) return;
 
     try {
       const token = localStorage.getItem("authToken");
 
-      await axios.post(
+      const formData = new FormData();
+      if (file) formData.append("file", file);
+      formData.append("fromUserId", loggedInUserId);
+      formData.append("toUserId", recipientId);
+      formData.append("message", newMessage);
+
+      const response = await axios.post(
         "http://localhost:8080/api/chat/send",
-        {
-          fromUserId: loggedInUserId,
-          toUserId: recipientId,
-          message: newMessage,
-        },
+        formData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -117,9 +189,11 @@ const Chat = () => {
         fromUserId: loggedInUserId,
         toUserId: recipientId,
         message: newMessage,
+        file: response.data.data.file,
       });
 
       setNewMessage("");
+      setFile(null);
     } catch (err) {
       console.error("Error sending message:", err);
     }
@@ -129,7 +203,10 @@ const Chat = () => {
     socket.emit("typing", { chatId: recipientId, userId: loggedInUserId });
     clearTimeout(typingTimeout);
     typingTimeout = setTimeout(() => {
-      socket.emit("stopTyping", { chatId: recipientId, userId: loggedInUserId });
+      socket.emit("stopTyping", {
+        chatId: recipientId,
+        userId: loggedInUserId,
+      });
     }, 1000);
   };
 
@@ -155,7 +232,10 @@ const Chat = () => {
       <div className="flex items-center space-x-3">
         {receiverData?.profilePhoto ? (
           <img
-            src={`http://localhost:8080/${receiverData?.profilePhoto.replace("\\", "/")}`}
+            src={`http://localhost:8080/${receiverData?.profilePhoto.replace(
+              "\\",
+              "/"
+            )}`}
             alt={receiverData?.name}
             className="w-10 h-10 rounded-full object-cover"
           />
@@ -164,7 +244,9 @@ const Chat = () => {
             {receiverData?.name?.charAt(0).toUpperCase() || "?"}
           </div>
         )}
-        <h2 className="text-xl font-semibold text-left">{receiverData?.name}</h2>
+        <h2 className="text-xl font-semibold text-left">
+          {receiverData?.name}
+        </h2>
       </div>
 
       <div
@@ -174,27 +256,95 @@ const Chat = () => {
         {messages.map((msg, index) => (
           <div
             key={index}
-            className={`flex ${msg.fromUserId === loggedInUserId ? "justify-end" : "justify-start"}`}
+            className={`flex ${
+              msg.fromUserId === loggedInUserId
+                ? "justify-end"
+                : "justify-start"
+            }`}
           >
             <div
               className={`max-w-[70%] p-3 rounded-lg text-white ${
-                msg.fromUserId === loggedInUserId ? "bg-blue-500 self-end" : "bg-gray-500 self-start"
+                msg.fromUserId === loggedInUserId
+                  ? "bg-blue-500 self-end"
+                  : "bg-gray-500 self-start"
               }`}
             >
-              <strong className="text-white">{msg.fromUserId === loggedInUserId ? senderData?.name : receiverData?.name}</strong>
+              <strong className="text-white">
+                {msg.fromUserId === loggedInUserId
+                  ? senderData?.name
+                  : receiverData?.name}
+              </strong>
               <p className="mt-1">{msg.message}</p>
+
+              {msg.file && (
+                <div className="mt-2">
+                  {msg.file.endsWith(".pdf") ? (
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-gray-700">
+                        {msg.file.split("/").pop()}
+                      </span>
+                      <a
+                        href={`http://localhost:8080/${msg.file}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-500 hover:text-blue-700"
+                        title="View PDF"
+                      >
+                        <RemoveRedEyeIcon className="text-white" />
+                      </a>
+                      <a
+                        href={`http://localhost:8080/${msg.file}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        download
+                        className="text-blue-500 hover:text-blue-700"
+                        title="Download PDF"
+                      >
+                        <DownloadIcon className="text-white" />
+                      </a>
+                    </div>
+                  ) : (
+                    <div className="flex items-center space-x-2">
+                      <img
+                        src={`http://localhost:8080/${msg.file}`}
+                        alt="Attached file"
+                        className="max-w-[200px] mt-2 rounded-lg"
+                      />
+                      <a
+                        href={`http://localhost:8080/${msg.file}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        download
+                        className="text-black hover:text-blue-700"
+                        title="Download File"
+                      >
+                        <DownloadIcon className="text-white" />
+                      </a>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <span className="text-xs text-gray-300 block justify-end mb-1 text-end">
-                {new Date(msg.createdAt || Date.now()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                {new Date(msg.createdAt || Date.now()).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
               </span>
             </div>
           </div>
         ))}
-        {typingStatus && <div className="text-gray-500 mt-2 pr-2 text-sm">{typingStatus}</div>}
+        {typingStatus && (
+          <div className="text-gray-500 mt-2 pr-2 text-sm">{typingStatus}</div>
+        )}
         <div ref={messageEndRef} />
       </div>
 
       {hasPermission && (
-        <form onSubmit={handleSendMessage} className="flex items-center space-x-2 relative">
+        <form
+          onSubmit={handleSendMessage}
+          className="flex items-center space-x-2 relative"
+        >
           <input
             type="text"
             value={newMessage}
@@ -204,6 +354,20 @@ const Chat = () => {
             }}
             placeholder="Type a message..."
             className="flex-grow p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <label
+            htmlFor="file-input"
+            className="cursor-pointer flex items-center justify-center p-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 focus:outline-none"
+            title="Attach file"
+          >
+            📎
+          </label>
+          <input
+            id="file-input"
+            type="file"
+            accept="image/*,application/pdf,.docx,.xslx"
+            onChange={(e) => setFile(e.target.files[0])}
+            className="hidden px-4 py-2 h-2"
           />
           <button
             type="button"
@@ -224,19 +388,66 @@ const Chat = () => {
       {emojiPickerVisible && (
         <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 w-72 grid grid-cols-8 gap-2 bg-white p-2 rounded-lg shadow-lg z-50">
           <div className="col-span-full text-right">
-            <button onClick={() => setEmojiPickerVisible(false)} className="text-sm px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded-md">
+            <button
+              onClick={() => setEmojiPickerVisible(false)}
+              className="text-sm px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded-md"
+            >
               Close
             </button>
           </div>
           {emojis.map((emoji, index) => (
-            <button key={index} className="text-2xl" onClick={() => handleEmojiClick(emoji)}>
+            <button
+              key={index}
+              className="text-2xl"
+              onClick={() => handleEmojiClick(emoji)}
+            >
               {emoji}
             </button>
           ))}
         </div>
       )}
+
+      {file && (
+        <div className="mt-2 flex items-center space-x-2">
+          {file.type === "application/pdf" ? (
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-gray-700">{file.name}</span>
+              <a
+                href={URL.createObjectURL(file)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-500 hover:text-blue-700"
+                title="View PDF"
+              >
+                <RemoveRedEyeIcon />
+              </a>
+              <button
+                onClick={() => setFile(null)} // Remove the file
+                className="text-red-500 hover:text-red-700"
+                title="Remove Attachment"
+              >
+                🗑️
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center space-x-2">
+              <img
+                src={URL.createObjectURL(file)}
+                alt="Attached file"
+                className="max-w-[200px] mt-2 rounded-lg"
+              />
+              <button
+                onClick={() => setFile(null)} // Remove the file
+                className="text-red-500 hover:text-red-700"
+                title="Remove Attachment"
+              >
+                🗑️
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
-
 export default Chat;

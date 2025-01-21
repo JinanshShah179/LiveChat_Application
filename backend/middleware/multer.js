@@ -12,13 +12,25 @@ const storage = multer.diskStorage({
 
 // File filter to validate uploaded files
 const fileFilter = (req, file, cb) => {
-  if (file.mimetype.startsWith('image/')) {
-    cb(null, true); // Accept only image files
-  } else {
-    cb(new Error('Invalid file type. Only images are allowed.'));
+
+  const allowedMimes = ['image/','application/pdf','text/plain'];
+
+  if(allowedMimes.some(mime => file.mimetype.startsWith(mime)))
+  {
+     cb(null,true);
   }
+  else
+  {
+    cb(new Error('Invalid file type. Only Images,text-files,and pdfs are allowed.'));
+  }
+
+  //logic of only image
+  // if (file.mimetype.startsWith('image/')) {
+  //   cb(null, true); // Accept only image files
+  // } else {
+  //   cb(new Error('Invalid file type. Only images are allowed.'));
+  // }
 };
 
 const upload = multer({ storage, fileFilter });
-
 module.exports = upload;

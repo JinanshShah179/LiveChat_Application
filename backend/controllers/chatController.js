@@ -1,7 +1,9 @@
 const Message = require("../models/Message");
 const User = require("../models/User");
+// const uploads = require('../middleware/multer');
+const path = require("path");
 // const Permission = require('../models/Permission');
-
+const normalizePath = (filePath) => filePath.replace(/\\/g, "/");
 
 exports.sendMessage = async (req, res) => {
   const { fromUserId, toUserId, message } = req.body;
@@ -12,9 +14,15 @@ exports.sendMessage = async (req, res) => {
     return res.status(400).json({ message: "All fields are required" });
   }
 
+  let filePath = null;
+  if(req.file)
+  {
+    filePath = normalizePath(path.join("uploads",req.file.filename));
+  }
+
   try 
   {
-    const newMessage = await Message.create({fromUserId,toUserId,message,});
+    const newMessage = await Message.create({fromUserId,toUserId,message,file:filePath});
     const sender = await User.findById(fromUserId).populate("permissions");
     const canSendMessages = sender.permissions.text_chat;
     // console.log({canSendMessages})
