@@ -4,7 +4,16 @@ import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { Button, Dialog, DialogActions, DialogContent,DialogContentText,DialogTitle} from "@mui/material";
+import {
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+} from "@mui/material";
+import RemoveRedEyeIcon from "@mui/icons-material/RemoveRedEye";
+import DownloadIcon from "@mui/icons-material/Download";
 
 const socket = io("http://localhost:8080");
 
@@ -99,6 +108,7 @@ const GroupChat = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [removeMemberDialogOpen, setRemoveMemberDialogOpen] = useState(false);
   const [memberToRemove, setMemberToRemove] = useState(null);
+  const [file, setFile] = useState(null);
   const messageEndRef = useRef(null);
   const navigate = useNavigate();
 
@@ -120,7 +130,6 @@ const GroupChat = () => {
   };
 
   useEffect(() => {
-
     const fetchGroupDataAndPermissions = async () => {
       try {
         const token = localStorage.getItem("authToken");
@@ -192,17 +201,20 @@ const GroupChat = () => {
   }, [messages]);
 
   const sendMessage = async () => {
-    if (!inputMessage.trim()) return;
+    if (!inputMessage.trim() && !file) return;
 
     try {
       const token = localStorage.getItem("authToken");
-      await axios.post(
+
+      const formData = new FormData();
+      if (file) formData.append("file", file);
+      formData.append("fromUserId", userId);
+      formData.append("groupId", selectedGroupId);
+      formData.append("message", inputMessage);
+
+      const response = await axios.post(
         "http://localhost:8080/api/group/send",
-        {
-          fromUserId: userId,
-          groupId: selectedGroupId,
-          message: inputMessage,
-        },
+        formData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -211,9 +223,11 @@ const GroupChat = () => {
         fromUserName: name,
         groupId: selectedGroupId,
         message: inputMessage,
+        file: response.data.data.file,
         createdAt: new Date().toISOString(),
       });
       setInputMessage(""); // Clear input field after sending
+      setFile(null);
     } catch (error) {
       console.error("Error sending message:", error);
     }
@@ -384,7 +398,14 @@ const GroupChat = () => {
             <Button onClick={handleDialogClose} color="primary">
               Cancel
             </Button>
-            <Button onClick={() => { deleteGroup(); handleDialogClose();}} color="error" autoFocus>
+            <Button
+              onClick={() => {
+                deleteGroup();
+                handleDialogClose();
+              }}
+              color="error"
+              autoFocus
+            >
               Confirm
             </Button>
           </DialogActions>
@@ -417,6 +438,56 @@ const GroupChat = () => {
                   : msg.fromUserId.name || msg.fromUserName}
               </strong>
               <p>{msg.message}</p>
+
+              {msg.file && (
+                <div className="mt-2">
+                  {msg.file.endsWith(".pdf") ? (
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-gray-700">
+                        {msg.file.split("/").pop()}
+                      </span>
+                      <a
+                        href={`http://localhost:8080/${msg.file}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-500 hover:text-blue-700"
+                        title="View PDF"
+                      >
+                        <RemoveRedEyeIcon className="text-white" />
+                      </a>
+                      <a
+                        href={`http://localhost:8080/${msg.file}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        download
+                        className="text-blue-500 hover:text-blue-700"
+                        title="Download PDF"
+                      >
+                        <DownloadIcon className="text-white" />
+                      </a>
+                    </div>
+                  ) : (
+                    <div className="flex items-center space-x-2">
+                      <img
+                        src={`http://localhost:8080/${msg.file}`}
+                        alt="Attached file"
+                        className="max-w-[200px] mt-2 rounded-lg"
+                      />
+                      <a
+                        href={`http://localhost:8080/${msg.file}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        download
+                        className="text-black hover:text-blue-700"
+                        title="Download File"
+                      >
+                        <DownloadIcon className="text-white" />
+                      </a>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <span className="text-xs text-gray-500 block mt-1">
                 {new Date(msg.createdAt).toLocaleTimeString([], {
                   hour: "2-digit",
@@ -437,6 +508,20 @@ const GroupChat = () => {
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
             className="flex-grow p-2 border border-gray-300 rounded-lg"
+          />
+          <label
+            htmlFor="file-input"
+            className="cursor-pointer flex items-center justify-center p-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 focus:outline-none"
+            title="Attach file"
+          >
+            📎
+          </label>
+          <input
+            id="file-input"
+            type="file"
+            accept="image/*,application/pdf,.docx,.xslx"
+            onChange={(e) => setFile(e.target.files[0])}
+            className="hidden px-4 py-2 h-2"
           />
           <button
             onClick={() => setEmojiPickerVisible(!emojiPickerVisible)}
@@ -535,7 +620,10 @@ const GroupChat = () => {
 
                   {userId === groupCreatedBy &&
                     member._id !== groupCreatedBy && (
-                      <button onClick={() => openRemoveMemberDialog(member)} className="text-xs bg-red-500 text-white p-2 rounded-lg">
+                      <button
+                        onClick={() => openRemoveMemberDialog(member)}
+                        className="text-xs bg-red-500 text-white p-2 rounded-lg"
+                      >
                         Remove
                       </button>
                     )}
@@ -588,6 +676,46 @@ const GroupChat = () => {
         </div>
       )}
 
+      {file && (
+        <div className="mt-2 flex items-center space-x-2">
+          {file.type === "application/pdf" ? (
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-gray-700">{file.name}</span>
+              <a
+                href={URL.createObjectURL(file)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-500 hover:text-blue-700"
+                title="View PDF"
+              >
+                <RemoveRedEyeIcon />
+              </a>
+              <button
+                onClick={() => setFile(null)} // Remove the file
+                className="text-red-500 hover:text-red-700"
+                title="Remove Attachment"
+              >
+                🗑️
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center space-x-2">
+              <img
+                src={URL.createObjectURL(file)}
+                alt="Attached file"
+                className="max-w-[200px] mt-2 rounded-lg"
+              />
+              <button
+                onClick={() => setFile(null)} // Remove the file
+                className="text-red-500 hover:text-red-700"
+                title="Remove Attachment"
+              >
+                🗑️
+              </button>
+            </div>
+          )}
+        </div>
+      )}
       <ToastContainer />
     </div>
   );

@@ -1,7 +1,10 @@
 const Group = require("../models/Group");
 const Message = require("../models/Message");
 const User = require("../models/User");
-const Permission = require('../models/Permission');
+// const Permission = require('../models/Permission');
+const path = require("path");
+const normalizePath = (filePath) => filePath.replace(/\\/g,"/");
+
 
 exports.createGroup = async (req, res) => {
   const { name, members, createdBy } = req.body;
@@ -115,12 +118,19 @@ exports.sendGroupMessage = async (req, res) => {
       .json({ success: false, message: "All fields are required." });
   }
 
+  let filePath = null;
+  if(req.file)
+  {
+    filePath = normalizePath(path.join("uploads",req.file.filename));
+  }
+
   try {
     // Create the message
     const newMessage = await Message.create({
       fromUserId,
       groupId,
       message,
+      file:filePath
     });
 
     const populatedMessage = await newMessage.populate(

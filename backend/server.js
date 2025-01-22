@@ -71,15 +71,15 @@
 
     // Send group message
     socket.on('send-group-message', (messageData) => {
-      const { groupId, fromUserId, message,createdAt,fromUserName } = messageData;
-      io.to(groupId).emit('receive-group-message', { groupId, fromUserId, message,createdAt,fromUserName});
+      const { groupId, fromUserId, message,createdAt,fromUserName,file:filePath } = messageData;
+      io.to(groupId).emit('receive-group-message', { groupId, fromUserId, message,createdAt,fromUserName,file:filePath});
       console.log('Group message sent:', messageData);
     });
 
     // Get Group message
     socket.on("receive-group-message", (newMessage) => {
       const messageWithTimestamp = { ...newMessage, createdAt: new Date() }; // Add createdAt here
-      console.log("Receive group message");
+      console.log("Receive group message",newMessage);
       setMessages((prevMessages) => [...prevMessages, messageWithTimestamp]);
     });
     
