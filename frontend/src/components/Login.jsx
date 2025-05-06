@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, use } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
@@ -9,6 +9,19 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const token = localStorage.getItem("authToken");
+    const role = localStorage.getItem("role");
+
+    if (token && role) {
+      if (role === "admin") {
+        navigate("/admin");
+      } else {
+        navigate("/users");
+      }
+    }
+  }, [navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
