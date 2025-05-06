@@ -1,9 +1,9 @@
-const multer = require('multer');
+const multer = require("multer");
 
 // Configure multer storage
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/'); // Directory to save files
+    cb(null, "uploads/"); // Directory to save files
   },
   filename: (req, file, cb) => {
     cb(null, `${Date.now()}-${file.originalname}`); // Unique filename
@@ -13,15 +13,24 @@ const storage = multer.diskStorage({
 // File filter to validate uploaded files
 const fileFilter = (req, file, cb) => {
 
-  const allowedMimes = ['image/','application/pdf','text/plain'];
+  const allowedMimes = [
+    "image/",
+    "application/pdf",
+    "text/plain",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.oasis.opendocument.text",
+    "application/vnd.oasis.opendocument.spreadsheet",
+    "application/zip",
+    "application/x-zip-compressed",
+  ];
 
-  if(allowedMimes.some(mime => file.mimetype.startsWith(mime)))
-  {
-     cb(null,true);
-  }
-  else
-  {
-    cb(new Error('Invalid file type. Only Images,text-files,and pdfs are allowed.'));
+  if (allowedMimes.some((mime) => file.mimetype.startsWith(mime))) {
+    cb(null, true);
+  } else {
+    cb(new Error("Invalid file type..."));
   }
 
   //logic of only image
